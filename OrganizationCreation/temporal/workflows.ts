@@ -5,7 +5,13 @@ import { OrgModel,IOrg, Iupdate} from '../utils/OrgModel';
 import mongoose from 'mongoose'
 
 const {OrgCreateActivity,statusUpdateActivity,sendEmailActivity,updateActivity,deleteActivity,deleteInDBActivity}=proxyActivities<typeof activities>({
-startToCloseTimeout:"2 minutes"
+startToCloseTimeout:"2 minutes",
+retry:{
+  maximumAttempts:5,
+  maximumInterval:"20 seconds",
+  backoffCoefficient:2
+}
+
 })
 
 
