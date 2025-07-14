@@ -10,7 +10,7 @@ export async function userCreationAuth0(name: string, email: string, password: s
 
   try {
     const res = await axios.post(
-      'https://kavinraj.us.auth0.com/api/v2/users',
+      process.env.AUTH0_URL!,
       {
         name: name,
         email: email,
@@ -101,7 +101,7 @@ export async function updateUserInAuth0(authId: string, name?: string, password?
 
   try {
     await axios.patch(
-      `https://kavinraj.us.auth0.com/api/v2/users/${authId}`,
+      `${process.env.AUTH0_URL}/${authId}`,
       updateFields,
       {
         headers: {
@@ -124,7 +124,7 @@ export async function deleteUserInAuth0(authId: string): Promise<void> {
 
   try {
     await axios.delete(
-      `https://kavinraj.us.auth0.com/api/v2/users/${authId}`,
+      `${process.env.Auth0_URL}/${authId}`,
 
       {
         headers: {
