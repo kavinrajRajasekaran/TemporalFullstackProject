@@ -10,20 +10,7 @@ export async function getClient(): Promise<Client> {
   return temporalClient;
 }
 
-// let AuthClient:ManagementClient|null=null;
 
-//  export async function getClientAuth() {
-//   if(AuthClient)return AuthClient
-  
-//   const management = new ManagementClient({
-//     clientId: process.env.AUTH0_CLIENT_ID!,
-//     clientSecret: process.env.AUTH0_CLIENT_SECRET!,
-//     domain: process.env.AUTH0_DOMAIN!,
-//   });
-//   return AuthClient
-
-
-// }
 
 
  export async function deleter(id:string){

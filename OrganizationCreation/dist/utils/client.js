@@ -25,16 +25,6 @@ function getClient() {
         return temporalClient;
     });
 }
-// let AuthClient:ManagementClient|null=null;
-//  export async function getClientAuth() {
-//   if(AuthClient)return AuthClient
-//   const management = new ManagementClient({
-//     clientId: process.env.AUTH0_CLIENT_ID!,
-//     clientSecret: process.env.AUTH0_CLIENT_SECRET!,
-//     domain: process.env.AUTH0_DOMAIN!,
-//   });
-//   return AuthClient
-// }
 function deleter(id) {
     return __awaiter(this, void 0, void 0, function* () {
         const management = new auth0_1.ManagementClient({

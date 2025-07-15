@@ -53,7 +53,7 @@ router.post('/create', (req, res) => __awaiter(void 0, void 0, void 0, function*
         let client = yield (0, client_1.getClient)();
         let createdOrg = yield client.workflow.start(workflows_1.createOrgWorkflow, {
             args: [organization, organization._id],
-            startDelay: "30 seconds",
+            startDelay: "10 seconds",
             workflowId: organization.name + Date.now(),
             taskQueue: 'organizationManagement'
         });
@@ -90,7 +90,7 @@ router.patch("/update/:id", (req, res) => __awaiter(void 0, void 0, void 0, func
         console.log(updated.authid, update, updated.metadata.createdByEmail, updated._id);
         yield client.workflow.start(workflows_1.updateWorkflow, {
             args: [updated.authid, update, updated.metadata.createdByEmail, updated._id],
-            startDelay: "30 seconds",
+            startDelay: "10 seconds",
             workflowId: updated.name + '-' + Date.now(),
             taskQueue: 'organizationManagement',
         });
@@ -113,7 +113,7 @@ router.patch('/delete/:id', (req, res) => __awaiter(void 0, void 0, void 0, func
         const client = yield (0, client_1.getClient)();
         yield client.workflow.start(workflows_1.deleteWorkflow, {
             args: [org.authid, org.metadata.createdByEmail, org._id],
-            startDelay: "30 seconds",
+            startDelay: "10 seconds",
             workflowId: "deleting workflow" + Date.now(),
             taskQueue: 'organizationManagement'
         });

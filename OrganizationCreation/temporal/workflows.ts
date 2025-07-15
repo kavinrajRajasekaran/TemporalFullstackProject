@@ -2,24 +2,41 @@ import { proxyActivities, sleep } from '@temporalio/workflow';
 import type * as activities from './activity';
 import { OrgModel,IOrg, Iupdate} from '../utils/OrgModel';
 
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
-const {OrgCreateActivity,statusUpdateActivity,sendEmailActivity,updateActivity,deleteActivity,deleteInDBActivity}=proxyActivities<typeof activities>({
+const {OrgCreateActivity,sendEmailActivity,updateActivity,deleteActivity}=proxyActivities<typeof activities>({
 startToCloseTimeout:"2 minutes",
-retry:{
-  maximumAttempts:5,
-  maximumInterval:"20 seconds",
-  backoffCoefficient:2
+retry: {
+  maximumAttempts: 5,
+  initialInterval: '5s',
+  maximumInterval: '5 seconds',
+  backoffCoefficient: 1,
+  
 }
 
+
 })
+const {statusUpdateActivity,deleteInDBActivity}=proxyActivities<typeof activities>({
+ startToCloseTimeout:"2 minutes",
+retry: {
+  maximumAttempts: 10,
+  initialInterval: '5s',
+  maximumInterval: '5 seconds',
+  backoffCoefficient: 1,
+  
+}
+
+
+})
+
+
 
 
 export async function createOrgWorkflow(Org:IOrg,id:mongoose.Types.ObjectId){
   try{
     await statusUpdateActivity(id,'provisoning')
   let authId:string|undefined=await OrgCreateActivity(Org)
-  console.log(`authId`+authId)
+  
    await sendEmailActivity({to:Org.metadata.createdByEmail,subject:'your organization created successfully'})
   await statusUpdateActivity(id,'succeed',undefined,authId)
      
@@ -27,7 +44,7 @@ export async function createOrgWorkflow(Org:IOrg,id:mongoose.Types.ObjectId){
   }
   catch(err){
       await statusUpdateActivity(id,'failure',undefined)
-    throw new Error('error while creating the organization')
+    throw  err
     
   }
  
@@ -40,11 +57,11 @@ export async function updateWorkflow(authId:any,update:Iupdate,receiver:string,i
     await updateActivity(authId,update)
     await sendEmailActivity({to:receiver,subject:'updated your organization'})
     await statusUpdateActivity(id,'succeed')
-
+  
   }
   catch(err){
  await statusUpdateActivity(id,'failure','failed while updating the organization')
- throw new Error("error while updating the organization")
+ throw err
   }
 
 }
@@ -59,8 +76,8 @@ export async function deleteWorkflow(authId:any,receiver:string,id:mongoose.Type
 
   }
   catch(err:any){
-    await statusUpdateActivity(id,'failed',"failed while deleting organization")
-    throw new Error(err?.message)
+    await statusUpdateActivity(id,'failure',"failed while deleting organization")
+    throw  err
   }
 }
 

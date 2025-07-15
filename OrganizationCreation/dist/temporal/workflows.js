@@ -13,21 +13,35 @@ exports.createOrgWorkflow = createOrgWorkflow;
 exports.updateWorkflow = updateWorkflow;
 exports.deleteWorkflow = deleteWorkflow;
 const workflow_1 = require("@temporalio/workflow");
-const { OrgCreateActivity, statusUpdateActivity, sendEmailActivity, updateActivity, deleteActivity, deleteInDBActivity } = (0, workflow_1.proxyActivities)({
-    startToCloseTimeout: "2 minutes"
+const { OrgCreateActivity, sendEmailActivity, updateActivity, deleteActivity } = (0, workflow_1.proxyActivities)({
+    startToCloseTimeout: "2 minutes",
+    retry: {
+        maximumAttempts: 5,
+        initialInterval: '5s',
+        maximumInterval: '5 seconds',
+        backoffCoefficient: 1,
+    }
+});
+const { statusUpdateActivity, deleteInDBActivity } = (0, workflow_1.proxyActivities)({
+    startToCloseTimeout: "2 minutes",
+    retry: {
+        maximumAttempts: 10,
+        initialInterval: '5s',
+        maximumInterval: '5 seconds',
+        backoffCoefficient: 1,
+    }
 });
 function createOrgWorkflow(Org, id) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield statusUpdateActivity(id, 'provisoning');
             let authId = yield OrgCreateActivity(Org);
-            console.log(`authId` + authId);
             yield sendEmailActivity({ to: Org.metadata.createdByEmail, subject: 'your organization created successfully' });
             yield statusUpdateActivity(id, 'succeed', undefined, authId);
         }
         catch (err) {
             yield statusUpdateActivity(id, 'failure', undefined);
-            throw new Error('error while creating the organization');
+            throw err;
         }
     });
 }
@@ -41,7 +55,7 @@ function updateWorkflow(authId, update, receiver, id) {
         }
         catch (err) {
             yield statusUpdateActivity(id, 'failure', 'failed while updating the organization');
-            throw new Error("error while updating the organization");
+            throw err;
         }
     });
 }
@@ -53,8 +67,8 @@ function deleteWorkflow(authId, receiver, id) {
             yield sendEmailActivity({ to: receiver, subject: "your org is successfully deleted" });
         }
         catch (err) {
-            yield statusUpdateActivity(id, 'failed', "failed while deleting organization");
-            throw new Error(err === null || err === void 0 ? void 0 : err.message);
+            yield statusUpdateActivity(id, 'failure', "failed while deleting organization");
+            throw err;
         }
     });
 }

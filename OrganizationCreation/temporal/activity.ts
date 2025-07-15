@@ -6,7 +6,7 @@ import { getToken } from "../utils/auth0TokenGenerator";
 import axios from 'axios';
 import { Iupdate } from "../utils/OrgModel";
 import { deleter } from "../utils/client";
-
+import { ApplicationFailure } from "@temporalio/common";
 
 
 export async function sendEmailActivity(content:SendEmailOptions){
@@ -14,8 +14,16 @@ export async function sendEmailActivity(content:SendEmailOptions){
    await sendEmail(content)
   
   }
-  catch(err:any){
-   throw new Error("error while sending email")
+  catch(error:any){
+   
+   const statusCode = error?.response?.status;
+
+    
+    throw ApplicationFailure.create({
+      message: `Failed to send email ${statusCode}`,
+      type: "EmailErorr",
+      nonRetryable: statusCode >= 400 && statusCode < 500,
+    });
     
 
   }
@@ -28,7 +36,7 @@ export async function OrgCreateActivity(Org: IOrg): Promise<string> {
   const config = {
     method: 'post',
     maxBodyLength: Infinity,
-    url:`${process.env.ORG_URI}`,
+    url:`https://${process.env.AUTH0_DOMAIN}/api/v2/organizations`,
     headers: { 
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -51,7 +59,14 @@ export async function OrgCreateActivity(Org: IOrg): Promise<string> {
     const response = await axios.request(config);
     return response.data.id;
   } catch (error: any) {
-    throw new Error('error while creating a orgInAUth: ' + error?.message);
+    
+   const statusCode = error.response?.status;
+  
+    throw ApplicationFailure.create({
+      message: `Error while creating an organization ${statusCode}`,
+      type: "HttpErorr",
+      nonRetryable: statusCode >= 400 && statusCode < 500,
+    });
   }
 }
 
@@ -101,7 +116,7 @@ const token=await getToken()
 let config = {
   method: 'patch',
   maxBodyLength: Infinity,
-  url: `${process.env.ORG_URI}/${id}`,
+  url: `https://${process.env.AUTH0_DOMAIN}/api/v2/organizations/${id}`,
   headers: { 
     'Content-Type': 'application/json', 
     'Accept': 'application/json', 
@@ -116,13 +131,20 @@ await axios.request(config)
 
 })
 .catch((error:any) => {
-  console.log(error?.message)
-  throw new Error("Error while updating organization")
-});
 
+   const statusCode = error.response?.status;
 
-   
+    
+    throw ApplicationFailure.create({
+      message: `Failed to update the org in the Auth0 ${statusCode}`,
+      type: "HttpErorr",
+      nonRetryable: statusCode >= 400 && statusCode < 500,
+    });
+
+})
+
 }
+
 
 
 export async function deleteActivity(id:string){
@@ -130,8 +152,16 @@ export async function deleteActivity(id:string){
   await deleter(id)
   
   }
-  catch(err){
-    throw new Error("error while deleting the organization")
+  catch(error:any){
+   
+   const statusCode = error.response?.status;
+
+    
+    throw ApplicationFailure.create({
+      message: `Error while deleting the org in the Auth0 ${statusCode}`,
+      type: "HttpErorr",
+      nonRetryable: statusCode >= 400 && statusCode < 500,
+    });
   }
 
 
@@ -142,11 +172,19 @@ export async function deleteActivity(id:string){
 
 export async function deleteInDBActivity(id:mongoose.Types.ObjectId){
     try{
-      await OrgModel.findByIdAndDelete(id)
+
+      await OrgModel.findByIdAndDelete(new mongoose.Types.ObjectId(id))
     }
-    catch(err:any){
-      console.log(err?.message)
-      throw new Error('error while deleting the org in db')
+    catch(error:any){
+      
+   const statusCode = error.response?.status;
+
+    
+    throw ApplicationFailure.create({
+      message: `error while deleting in DB ${statusCode}`,
+      type: "DatabaseError",
+      nonRetryable: statusCode >= 400 && statusCode < 500,
+    });
     }
 }
 

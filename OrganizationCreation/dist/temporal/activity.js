@@ -20,27 +20,35 @@ exports.deleteActivity = deleteActivity;
 exports.deleteInDBActivity = deleteInDBActivity;
 const mailsender_1 = require("../utils/mailsender");
 const OrgModel_1 = require("../utils/OrgModel");
+const mongoose_1 = __importDefault(require("mongoose"));
 const auth0TokenGenerator_1 = require("../utils/auth0TokenGenerator");
 const axios_1 = __importDefault(require("axios"));
 const client_1 = require("../utils/client");
+const common_1 = require("@temporalio/common");
 function sendEmailActivity(content) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a;
         try {
             yield (0, mailsender_1.sendEmail)(content);
         }
-        catch (err) {
-            throw new Error("error while sending email");
+        catch (error) {
+            const statusCode = (_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.status;
+            throw common_1.ApplicationFailure.create({
+                message: `Failed to send email ${statusCode}`,
+                type: "EmailErorr",
+                nonRetryable: statusCode >= 400 && statusCode < 500,
+            });
         }
     });
 }
 function OrgCreateActivity(Org) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         const token = yield (0, auth0TokenGenerator_1.getToken)();
         const config = {
             method: 'post',
             maxBodyLength: Infinity,
-            url: `${process.env.ORG_URI}`,
+            url: `https://${process.env.AUTH0_DOMAIN}/api/v2/organizations`,
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
@@ -63,7 +71,12 @@ function OrgCreateActivity(Org) {
             return response.data.id;
         }
         catch (error) {
-            throw new Error('error while creating a orgInAUth: ' + (error === null || error === void 0 ? void 0 : error.message));
+            const statusCode = (_d = error.response) === null || _d === void 0 ? void 0 : _d.status;
+            throw common_1.ApplicationFailure.create({
+                message: `Error while creating an organization ${statusCode}`,
+                type: "HttpErorr",
+                nonRetryable: statusCode >= 400 && statusCode < 500,
+            });
         }
     });
 }
@@ -98,7 +111,7 @@ function updateActivity(id, update) {
         let config = {
             method: 'patch',
             maxBodyLength: Infinity,
-            url: `${process.env.ORG_URI}/${id}`,
+            url: `https://${process.env.AUTH0_DOMAIN}/api/v2/organizations/${id}`,
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
@@ -111,29 +124,45 @@ function updateActivity(id, update) {
             return response.data;
         })
             .catch((error) => {
-            console.log(error === null || error === void 0 ? void 0 : error.message);
-            throw new Error("Error while updating organization");
+            var _a;
+            const statusCode = (_a = error.response) === null || _a === void 0 ? void 0 : _a.status;
+            throw common_1.ApplicationFailure.create({
+                message: `Failed to update the org in the Auth0 ${statusCode}`,
+                type: "HttpErorr",
+                nonRetryable: statusCode >= 400 && statusCode < 500,
+            });
         });
     });
 }
 function deleteActivity(id) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a;
         try {
             yield (0, client_1.deleter)(id);
         }
-        catch (err) {
-            throw new Error("error while deleting the organization");
+        catch (error) {
+            const statusCode = (_a = error.response) === null || _a === void 0 ? void 0 : _a.status;
+            throw common_1.ApplicationFailure.create({
+                message: `Error while deleting the org in the Auth0 ${statusCode}`,
+                type: "HttpErorr",
+                nonRetryable: statusCode >= 400 && statusCode < 500,
+            });
         }
     });
 }
 function deleteInDBActivity(id) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a;
         try {
-            yield OrgModel_1.OrgModel.findByIdAndDelete(id);
+            yield OrgModel_1.OrgModel.findByIdAndDelete(new mongoose_1.default.Types.ObjectId(id));
         }
-        catch (err) {
-            console.log(err === null || err === void 0 ? void 0 : err.message);
-            throw new Error('error while deleting the org in db');
+        catch (error) {
+            const statusCode = (_a = error.response) === null || _a === void 0 ? void 0 : _a.status;
+            throw common_1.ApplicationFailure.create({
+                message: `error while deleting in DB ${statusCode}`,
+                type: "DatabaseError",
+                nonRetryable: statusCode >= 400 && statusCode < 500,
+            });
         }
     });
 }

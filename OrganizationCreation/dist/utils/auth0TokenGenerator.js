@@ -20,13 +20,13 @@ function getToken() {
             return cachedToken;
         }
         try {
-            const response = yield fetch('https://dev-z5htpfd1ttgn2n0d.us.auth0.com/oauth/token', {
+            const response = yield fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
-                    "client_id": "dpNlNcUhHplzzCdQsMHopXpRj61v8odJ",
-                    "client_secret": "ZIVZ8MszY8AyhwQy6XyXusG8H-3cu3t3ZR0QVHYgtOrq8dFpbM5VV6NLEnDf0i9c",
-                    "audience": "https://dev-z5htpfd1ttgn2n0d.us.auth0.com/api/v2/",
+                    "client_id": process.env.AUTH0_CLIENT_ID,
+                    "client_secret": process.env.AUTH0_CLIENT_SECRET,
+                    "audience": `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
                     "grant_type": "client_credentials"
                 }),
             });
