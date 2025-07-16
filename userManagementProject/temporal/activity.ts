@@ -5,7 +5,9 @@ import { getToken } from "../utils/auth0TokenGenerator";
 import { connectToMongo } from "../utils/db";
 import { ApplicationFailure } from "@temporalio/common";
 connectToMongo()
-export async function userCreationAuth0(name: string, email: string, password: string): Promise<string | undefined> {
+
+
+export async function userCreationInAuth0(name: string, email: string, password: string): Promise<string | undefined> {
   const token = await getToken()
 
   try {
@@ -45,7 +47,7 @@ export async function userCreationAuth0(name: string, email: string, password: s
 
 }
 
-export async function updateStatus(
+export async function updateUserStatusInDB(
   userId: mongoose.Types.ObjectId,
   statusValue: status,
   failureReason?: string,
@@ -60,7 +62,7 @@ export async function updateStatus(
     if (authId) update.authId = authId;
 
     const user = await UserModel.findByIdAndUpdate(userId, update, {
-      new: true, // return the updated document
+      new: true, 
     });
 
     if (!user) {
@@ -112,8 +114,21 @@ export async function updateUserInAuth0(authId: string, name?: string, password?
 
     console.log(`Auth0 user ${authId} updated`);
   } catch (error: any) {
-    console.error('Failed to update user in Auth0:', error.response?.data || error.message);
-    throw error;
+   const status = error.response?.status;
+    const isNonRetryable = status >= 400 && status < 500;
+
+    console.error(' Auth0 status update failed:', error.response?.data || error.message);
+
+    if (isNonRetryable) {
+      throw ApplicationFailure.create({
+        nonRetryable: true,
+        message: "error while updation status of the user in auth0",
+        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
+      })
+    } else {
+
+      throw error;
+    }
   }
 }
 
@@ -124,7 +139,7 @@ export async function deleteUserInAuth0(authId: string): Promise<void> {
 
   try {
     await axios.delete(
-      `${process.env.Auth0_URL}/${authId}`,
+      `https://kavinraj.us.auth0.com/api/v2/users/${authId}`,
 
       {
         headers: {
@@ -154,7 +169,7 @@ export async function deleteUserInAuth0(authId: string): Promise<void> {
 }
 
 
-export async function deleteIndb(authId: string) {
+export async function deleteUserInDb(authId: string) {
 
   try {
     await UserModel.findOneAndDelete({ authId: authId })

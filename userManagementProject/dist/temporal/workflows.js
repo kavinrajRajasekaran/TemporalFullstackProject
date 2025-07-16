@@ -13,7 +13,7 @@ exports.signupWorkflow = signupWorkflow;
 exports.updateWorkflow = updateWorkflow;
 exports.deleteUserInfoWorkflow = deleteUserInfoWorkflow;
 const workflow_1 = require("@temporalio/workflow");
-const { userCreationAuth0, updateUserInAuth0, deleteUserInAuth0, deleteIndb } = (0, workflow_1.proxyActivities)({
+const { userCreationInAuth0, updateUserInAuth0, deleteUserInAuth0, deleteUserInDb } = (0, workflow_1.proxyActivities)({
     retry: {
         maximumAttempts: 5,
         maximumInterval: "30 seconds",
@@ -21,7 +21,7 @@ const { userCreationAuth0, updateUserInAuth0, deleteUserInAuth0, deleteIndb } = 
     },
     startToCloseTimeout: '2 minutes'
 });
-const { updateStatus } = (0, workflow_1.proxyActivities)({
+const { updateUserStatusInDB } = (0, workflow_1.proxyActivities)({
     retry: {
         maximumAttempts: 5,
         maximumInterval: "5 seconds",
@@ -32,12 +32,12 @@ const { updateStatus } = (0, workflow_1.proxyActivities)({
 function signupWorkflow(name, email, password, _id) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const authId = yield userCreationAuth0(name, email, password);
+            const authId = yield userCreationInAuth0(name, email, password);
             yield (0, workflow_1.sleep)('5000');
-            yield updateStatus(_id, "succeed", undefined, authId);
+            yield updateUserStatusInDB(_id, "succeed", undefined, authId);
         }
         catch (err) {
-            yield updateStatus(_id, "failed", "failed while updating to auth0", undefined);
+            yield updateUserStatusInDB(_id, "failed", "failed while updating to auth0");
         }
     });
 }
@@ -46,10 +46,10 @@ function updateWorkflow(authId, _id, name, password) {
         try {
             yield updateUserInAuth0(authId, name, password);
             yield (0, workflow_1.sleep)('5000');
-            yield updateStatus(_id, "succeed", undefined, undefined);
+            yield updateUserStatusInDB(_id, "succeed");
         }
         catch (err) {
-            yield updateStatus(_id, "failed", "failed while updating to auth0", undefined);
+            yield updateUserStatusInDB(_id, "failed", "failed while updating to auth0");
         }
     });
 }
@@ -58,10 +58,10 @@ function deleteUserInfoWorkflow(authId, _id) {
         try {
             yield deleteUserInAuth0(authId);
             yield (0, workflow_1.sleep)('5000');
-            yield deleteIndb(authId);
+            yield deleteUserInDb(authId);
         }
         catch (err) {
-            yield updateStatus(_id, "failed", "failed while deletion  to auth0", undefined);
+            yield updateUserStatusInDB(_id, "failed", "failed while deletion  to auth0", undefined);
         }
     });
 }

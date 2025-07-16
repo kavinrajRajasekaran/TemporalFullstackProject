@@ -16,6 +16,7 @@ exports.sendEmailActivity = sendEmailActivity;
 exports.OrgCreateActivity = OrgCreateActivity;
 exports.statusUpdateActivity = statusUpdateActivity;
 exports.updateActivity = updateActivity;
+exports.createInDB = createInDB;
 exports.deleteActivity = deleteActivity;
 exports.deleteInDBActivity = deleteInDBActivity;
 const mailsender_1 = require("../utils/mailsender");
@@ -132,6 +133,23 @@ function updateActivity(id, update) {
                 nonRetryable: statusCode >= 400 && statusCode < 500,
             });
         });
+    });
+}
+function createInDB(organization) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const Org = yield OrgModel_1.OrgModel.create(organization);
+            return Org._id;
+        }
+        catch (err) {
+            const statusCode = (_a = err.response) === null || _a === void 0 ? void 0 : _a.status;
+            throw common_1.ApplicationFailure.create({
+                message: `Failed to update the org in the Auth0 ${statusCode}`,
+                type: "HttpErorr",
+                nonRetryable: statusCode >= 400 && statusCode < 500,
+            });
+        }
     });
 }
 function deleteActivity(id) {

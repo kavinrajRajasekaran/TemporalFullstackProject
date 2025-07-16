@@ -12,23 +12,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userCreationAuth0 = userCreationAuth0;
-exports.updateStatus = updateStatus;
+exports.userCreationInAuth0 = userCreationInAuth0;
+exports.updateUserStatusInDB = updateUserStatusInDB;
 exports.updateUserInAuth0 = updateUserInAuth0;
 exports.deleteUserInAuth0 = deleteUserInAuth0;
-exports.deleteIndb = deleteIndb;
+exports.deleteUserInDb = deleteUserInDb;
 const userModel_1 = require("../utils/userModel");
 const axios_1 = __importDefault(require("axios"));
 const auth0TokenGenerator_1 = require("../utils/auth0TokenGenerator");
 const db_1 = require("../utils/db");
 const common_1 = require("@temporalio/common");
 (0, db_1.connectToMongo)();
-function userCreationAuth0(name, email, password) {
+function userCreationInAuth0(name, email, password) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
         const token = yield (0, auth0TokenGenerator_1.getToken)();
         try {
-            const res = yield axios_1.default.post('https://kavinraj.us.auth0.com/api/v2/users', {
+            const res = yield axios_1.default.post(process.env.AUTH0_URL, {
                 name: name,
                 email: email,
                 password: password,
@@ -57,7 +57,7 @@ function userCreationAuth0(name, email, password) {
         }
     });
 }
-function updateStatus(userId, statusValue, failureReason, authId) {
+function updateUserStatusInDB(userId, statusValue, failureReason, authId) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
         try {
@@ -69,7 +69,7 @@ function updateStatus(userId, statusValue, failureReason, authId) {
             if (authId)
                 update.authId = authId;
             const user = yield userModel_1.UserModel.findByIdAndUpdate(userId, update, {
-                new: true, // return the updated document
+                new: true,
             });
             if (!user) {
                 console.warn(`User with ID ${userId} not found`);
@@ -95,7 +95,7 @@ function updateStatus(userId, statusValue, failureReason, authId) {
 }
 function updateUserInAuth0(authId, name, password) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
+        var _a, _b, _c;
         const token = yield (0, auth0TokenGenerator_1.getToken)();
         const updateFields = {};
         if (name)
@@ -106,7 +106,7 @@ function updateUserInAuth0(authId, name, password) {
             throw new Error('No fields provided to update.');
         }
         try {
-            yield axios_1.default.patch(`https://kavinraj.us.auth0.com/api/v2/users/${authId}`, updateFields, {
+            yield axios_1.default.patch(`${process.env.AUTH0_URL}/${authId}`, updateFields, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -114,8 +114,19 @@ function updateUserInAuth0(authId, name, password) {
             console.log(`Auth0 user ${authId} updated`);
         }
         catch (error) {
-            console.error('Failed to update user in Auth0:', ((_a = error.response) === null || _a === void 0 ? void 0 : _a.data) || error.message);
-            throw error;
+            const status = (_a = error.response) === null || _a === void 0 ? void 0 : _a.status;
+            const isNonRetryable = status >= 400 && status < 500;
+            console.error(' Auth0 status update failed:', ((_b = error.response) === null || _b === void 0 ? void 0 : _b.data) || error.message);
+            if (isNonRetryable) {
+                throw common_1.ApplicationFailure.create({
+                    nonRetryable: true,
+                    message: "error while updation status of the user in auth0",
+                    details: [((_c = error.response) === null || _c === void 0 ? void 0 : _c.data) ? JSON.stringify(error.response.data) : undefined]
+                });
+            }
+            else {
+                throw error;
+            }
         }
     });
 }
@@ -148,7 +159,7 @@ function deleteUserInAuth0(authId) {
         }
     });
 }
-function deleteIndb(authId) {
+function deleteUserInDb(authId) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
         try {

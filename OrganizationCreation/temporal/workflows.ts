@@ -1,14 +1,16 @@
-import { proxyActivities, sleep } from '@temporalio/workflow';
+import { proxyActivities, sleep,condition,setHandler,defineSignal } from '@temporalio/workflow';
 import type * as activities from './activity';
 import { OrgModel,IOrg, Iupdate} from '../utils/OrgModel';
 
 import mongoose from 'mongoose';
+export const updateOrgSignal = defineSignal<[string]>('updateOrgSignal');
 
-const {OrgCreateActivity,sendEmailActivity,updateActivity,deleteActivity}=proxyActivities<typeof activities>({
+
+const {OrgCreateActivity,sendEmailActivity,updateActivity,deleteActivity,createInDB}=proxyActivities<typeof activities>({
 startToCloseTimeout:"2 minutes",
 retry: {
   maximumAttempts: 5,
-  initialInterval: '5s',
+ 
   maximumInterval: '5 seconds',
   backoffCoefficient: 1,
   
@@ -29,27 +31,45 @@ retry: {
 
 })
 
+export async function createOrgWorkflow(Org:IOrg,id: mongoose.Types.ObjectId ){
 
+  
 
+  let display_name:string | undefined;
 
-export async function createOrgWorkflow(Org:IOrg,id:mongoose.Types.ObjectId){
+  
+  setHandler(updateOrgSignal, (displayName) => {
+    display_name=displayName
+  });
+
+ 
+  await condition(() => display_name !== undefined, '1 minute');
+
+ 
+  if(display_name) Org["display_name"]=display_name
+
   try{
-    await statusUpdateActivity(id,'provisoning')
+    
+    
+    await statusUpdateActivity(id!,'provisoning')
   let authId:string|undefined=await OrgCreateActivity(Org)
   
    await sendEmailActivity({to:Org.metadata.createdByEmail,subject:'your organization created successfully'})
-  await statusUpdateActivity(id,'succeed',undefined,authId)
+  await statusUpdateActivity(id!,'succeed',undefined,authId)
      
 
   }
   catch(err){
+    if(id!==undefined){
       await statusUpdateActivity(id,'failure',undefined)
+    }
     throw  err
     
   }
  
 
 }
+
 
 export async function updateWorkflow(authId:any,update:Iupdate,receiver:string,id:mongoose.Types.ObjectId){
   try{
@@ -80,5 +100,8 @@ export async function deleteWorkflow(authId:any,receiver:string,id:mongoose.Type
     throw  err
   }
 }
+
+
+
 
  

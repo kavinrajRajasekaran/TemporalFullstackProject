@@ -9,15 +9,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.updateOrgSignal = void 0;
 exports.createOrgWorkflow = createOrgWorkflow;
 exports.updateWorkflow = updateWorkflow;
 exports.deleteWorkflow = deleteWorkflow;
 const workflow_1 = require("@temporalio/workflow");
-const { OrgCreateActivity, sendEmailActivity, updateActivity, deleteActivity } = (0, workflow_1.proxyActivities)({
+exports.updateOrgSignal = (0, workflow_1.defineSignal)('updateOrgSignal');
+const { OrgCreateActivity, sendEmailActivity, updateActivity, deleteActivity, createInDB } = (0, workflow_1.proxyActivities)({
     startToCloseTimeout: "2 minutes",
     retry: {
         maximumAttempts: 5,
-        initialInterval: '5s',
         maximumInterval: '5 seconds',
         backoffCoefficient: 1,
     }
@@ -33,6 +34,13 @@ const { statusUpdateActivity, deleteInDBActivity } = (0, workflow_1.proxyActivit
 });
 function createOrgWorkflow(Org, id) {
     return __awaiter(this, void 0, void 0, function* () {
+        let display_name;
+        (0, workflow_1.setHandler)(exports.updateOrgSignal, (displayName) => {
+            display_name = displayName;
+        });
+        yield (0, workflow_1.condition)(() => display_name !== undefined, '1 minute');
+        if (display_name)
+            Org["display_name"] = display_name;
         try {
             yield statusUpdateActivity(id, 'provisoning');
             let authId = yield OrgCreateActivity(Org);
@@ -40,7 +48,9 @@ function createOrgWorkflow(Org, id) {
             yield statusUpdateActivity(id, 'succeed', undefined, authId);
         }
         catch (err) {
-            yield statusUpdateActivity(id, 'failure', undefined);
+            if (id !== undefined) {
+                yield statusUpdateActivity(id, 'failure', undefined);
+            }
             throw err;
         }
     });

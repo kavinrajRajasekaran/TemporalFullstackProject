@@ -14,5 +14,4 @@ const UserSchema = new mongoose_1.Schema({
     },
     failureReason: { type: String },
 }, { timestamps: true });
-//Mongoose model type
 exports.UserModel = (0, mongoose_1.model)('User', UserSchema);

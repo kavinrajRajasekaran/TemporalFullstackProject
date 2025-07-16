@@ -1,10 +1,9 @@
 import { proxyActivities, sleep } from '@temporalio/workflow';
 import type * as activities from './activity';
-import { IUserDocument } from '../utils/userModel';
 import mongoose from 'mongoose';
 
 const {
-  userCreationAuth0, updateUserInAuth0, deleteUserInAuth0, deleteIndb
+  userCreationInAuth0, updateUserInAuth0, deleteUserInAuth0, deleteUserInDb
 } = proxyActivities<typeof activities>({
   retry: {
     maximumAttempts: 5,
@@ -15,7 +14,7 @@ const {
   startToCloseTimeout: '2 minutes'
 });
 const {
-  updateStatus
+  updateUserStatusInDB
 } = proxyActivities<typeof activities>({
   retry: {
     maximumAttempts: 5,
@@ -32,11 +31,11 @@ export async function signupWorkflow(
 ): Promise<void> {
   try {
 
-    const authId = await userCreationAuth0(name, email, password);
+    const authId = await userCreationInAuth0(name, email, password);
     await sleep('5000')
-    await updateStatus(_id, "succeed", undefined, authId)
+    await updateUserStatusInDB(_id, "succeed", undefined, authId)
   } catch (err: any) {
-    await updateStatus(_id, "failed", "failed while updating to auth0", undefined)
+    await updateUserStatusInDB(_id, "failed", "failed while updating to auth0");
   }
 }
 
@@ -44,14 +43,14 @@ export async function updateWorkflow(authId: string, _id: mongoose.Types.ObjectI
   try {
     await updateUserInAuth0(authId, name, password)
     await sleep('5000')
-    await updateStatus(_id, "succeed", undefined, undefined)
+    await updateUserStatusInDB(_id, "succeed")
 
 
   }
   catch (err: any) {
 
 
-    await updateStatus(_id, "failed", "failed while updating to auth0", undefined)
+    await updateUserStatusInDB(_id, "failed", "failed while updating to auth0")
   }
 }
 
@@ -59,12 +58,12 @@ export async function deleteUserInfoWorkflow(authId: string, _id: mongoose.Types
   try {
     await deleteUserInAuth0(authId)
     await sleep('5000')
-    await deleteIndb(authId)
+    await deleteUserInDb(authId)
 
 
   }
   catch (err: any) {
-    await updateStatus(_id, "failed", "failed while deletion  to auth0", undefined)
+    await updateUserStatusInDB(_id, "failed", "failed while deletion  to auth0", undefined)
   }
 }
 

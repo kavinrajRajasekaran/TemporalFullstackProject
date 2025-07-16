@@ -25,7 +25,7 @@ export async function sendEmailActivity(content:SendEmailOptions){
       nonRetryable: statusCode >= 400 && statusCode < 500,
     });
     
-
+ 
   }
 
 }
@@ -120,7 +120,8 @@ let config = {
   headers: { 
     'Content-Type': 'application/json', 
     'Accept': 'application/json', 
-    'Authorization':`Bearer ${token}` },
+    'Authorization':`Bearer ${token}` 
+  },
   data :JSON.stringify(update)
 };
 
@@ -144,7 +145,28 @@ await axios.request(config)
 })
 
 }
+export async function createInDB(organization:IOrg):Promise<mongoose.Types.ObjectId|undefined>{
+try{
 
+ const Org= await OrgModel.create(organization)
+ return Org._id
+
+}
+catch(err:any){
+   const statusCode = err.response?.status;
+
+    
+    throw ApplicationFailure.create({
+      message: `Failed to update the org in the Auth0 ${statusCode}`,
+      type: "HttpErorr",
+      nonRetryable: statusCode >= 400 && statusCode < 500,
+     
+    });
+
+
+}
+
+}
 
 
 export async function deleteActivity(id:string){
@@ -155,7 +177,7 @@ export async function deleteActivity(id:string){
   catch(error:any){
    
    const statusCode = error.response?.status;
-
+    
     
     throw ApplicationFailure.create({
       message: `Error while deleting the org in the Auth0 ${statusCode}`,
