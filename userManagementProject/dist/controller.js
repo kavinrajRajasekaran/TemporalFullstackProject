@@ -16,9 +16,7 @@ exports.createUserController = createUserController;
 exports.UpdateUserController = UpdateUserController;
 exports.getAllUserController = getAllUserController;
 exports.deleteUserController = deleteUserController;
-const express_1 = require("express");
 const userModel_1 = require("./utils/userModel");
-const router = (0, express_1.Router)();
 const client_1 = require("./temporal/client");
 const workflows_1 = require("./temporal/workflows");
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -49,8 +47,9 @@ function createUserController(req, res) {
             email,
             password
         });
-        let temporalClient = yield (0, client_1.getClient)();
-        yield temporalClient.workflow.start(workflows_1.signupWorkflow, {
+        // user.password=undefined
+        let temporalClient = yield (0, client_1.getTemporalClient)();
+        yield temporalClient.workflow.start(workflows_1.UserSignupWorkflow, {
             taskQueue: 'user-management',
             startDelay: "1 minutes",
             workflowId: `signup-${user._id}`,
@@ -61,8 +60,8 @@ function createUserController(req, res) {
 }
 function UpdateUserController(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { username, password } = req.body;
-        if (!username || !password) {
+        const { name, password } = req.body;
+        if (!name || !password) {
             res.status(400).json({
                 message: "misssing input fields"
             });
@@ -71,13 +70,13 @@ function UpdateUserController(req, res) {
         try {
             const userId = new mongoose_1.default.Types.ObjectId(req.params.id);
             const updateFields = {};
-            if (username)
-                updateFields.name = username;
+            if (name)
+                updateFields.name = name;
             if (password)
                 updateFields.password = password;
             const user = yield userModel_1.UserModel.findByIdAndUpdate(userId, updateFields, {
                 new: true,
-            });
+            }).select('-password');
             if (!user) {
                 res.status(404).send("User not found");
                 return;
@@ -86,9 +85,9 @@ function UpdateUserController(req, res) {
                 res.status(500).send("authId is missing for this user.");
                 return;
             }
-            const client = yield (0, client_1.getClient)();
-            yield client.workflow.start(workflows_1.updateWorkflow, {
-                args: [user.authId, user._id, username, password],
+            const client = yield (0, client_1.getTemporalClient)();
+            yield client.workflow.start(workflows_1.UserUpdateWorkflow, {
+                args: [user.authId, user._id, name, password],
                 startDelay: "10 seconds",
                 taskQueue: 'user-management',
                 workflowId: `update-${Date.now()}`,
@@ -107,7 +106,7 @@ function getAllUserController(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
         try {
-            const token = yield (0, auth0TokenGenerator_1.getToken)();
+            const token = yield (0, auth0TokenGenerator_1.getAUth0Token)();
             const response = yield axios_1.default.get(`https:${process.env.AUTH0_DOMAIN}/api/v2/users`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -130,15 +129,14 @@ function deleteUserController(req, res) {
         try {
             const user = yield userModel_1.UserModel.findByIdAndUpdate(userId, { status: "deleting" }, {
                 new: true,
-            });
+            }).select("-password");
             if (!user) {
                 return res.status(404).send("User not found");
             }
-            console.log("user:" + user);
             if (!user.authId) {
                 return res.status(500).send("authId is missing for this user.");
             }
-            const client = yield (0, client_1.getClient)();
+            const client = yield (0, client_1.getTemporalClient)();
             yield client.workflow.start(workflows_1.deleteUserInfoWorkflow, {
                 args: [user.authId, user._id],
                 startDelay: "1 minutes",
@@ -148,8 +146,6 @@ function deleteUserController(req, res) {
             return res.status(200).json({ message: "User deletion  initiated" });
         }
         catch (error) {
-            console.error('Update error:', error);
-            console.log(error.message);
             return res.status(500).send("Server error");
         }
     });

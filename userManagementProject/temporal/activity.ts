@@ -1,14 +1,15 @@
-import { IUser, IUserDocument, UserModel, status } from "../utils/userModel";
+import {  UserModel, status } from "../utils/userModel";
 import axios from 'axios'
-import mongoose, { mongo } from 'mongoose'
-import { getToken } from "../utils/auth0TokenGenerator";
-import { connectToMongo } from "../utils/db";
+import mongoose from 'mongoose'
+import { getAUth0Token } from "../utils/auth0TokenGenerator";
+
 import { ApplicationFailure } from "@temporalio/common";
-connectToMongo()
+
+
 
 
 export async function userCreationInAuth0(name: string, email: string, password: string): Promise<string | undefined> {
-  const token = await getToken()
+  const token = await getAUth0Token()
 
   try {
     const res = await axios.post(
@@ -91,7 +92,7 @@ export async function updateUserStatusInDB(
 }
 
 export async function updateUserInAuth0(authId: string, name?: string, password?: string): Promise<void> {
-  const token = await getToken();
+  const token = await getAUth0Token();
 
   const updateFields: Record<string, any> = {};
   if (name) updateFields.name = name;
@@ -133,7 +134,7 @@ export async function updateUserInAuth0(authId: string, name?: string, password?
 }
 
 export async function deleteUserInAuth0(authId: string): Promise<void> {
-  const token = await getToken();
+  const token = await getAUth0Token();
 
 
 

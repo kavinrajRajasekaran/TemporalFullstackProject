@@ -20,13 +20,11 @@ exports.deleteUserInDb = deleteUserInDb;
 const userModel_1 = require("../utils/userModel");
 const axios_1 = __importDefault(require("axios"));
 const auth0TokenGenerator_1 = require("../utils/auth0TokenGenerator");
-const db_1 = require("../utils/db");
 const common_1 = require("@temporalio/common");
-(0, db_1.connectToMongo)();
 function userCreationInAuth0(name, email, password) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
-        const token = yield (0, auth0TokenGenerator_1.getToken)();
+        const token = yield (0, auth0TokenGenerator_1.getAUth0Token)();
         try {
             const res = yield axios_1.default.post(process.env.AUTH0_URL, {
                 name: name,
@@ -96,7 +94,7 @@ function updateUserStatusInDB(userId, statusValue, failureReason, authId) {
 function updateUserInAuth0(authId, name, password) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
-        const token = yield (0, auth0TokenGenerator_1.getToken)();
+        const token = yield (0, auth0TokenGenerator_1.getAUth0Token)();
         const updateFields = {};
         if (name)
             updateFields.name = name;
@@ -133,7 +131,7 @@ function updateUserInAuth0(authId, name, password) {
 function deleteUserInAuth0(authId) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
-        const token = yield (0, auth0TokenGenerator_1.getToken)();
+        const token = yield (0, auth0TokenGenerator_1.getAUth0Token)();
         try {
             yield axios_1.default.delete(`https://kavinraj.us.auth0.com/api/v2/users/${authId}`, {
                 headers: {

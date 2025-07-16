@@ -9,10 +9,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getToken = getToken;
+exports.getAUth0Token = getAUth0Token;
 let cachedToken = null;
 let tokenExpiry = 0; // Unix timestamp in ms
-function getToken() {
+function getAUth0Token() {
     return __awaiter(this, void 0, void 0, function* () {
         const now = Date.now();
         // If token exists and not expired, reuse it

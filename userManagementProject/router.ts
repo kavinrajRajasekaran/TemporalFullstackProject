@@ -1,12 +1,7 @@
-import { Router, Request, Response } from "express";
-import { IUserDocument, UserModel } from "./utils/userModel";
+import { Router} from "express";
+
 const router = Router()
-import { getClient } from "./temporal/client";
-import { signupWorkflow, updateWorkflow, deleteUserInfoWorkflow } from "./temporal/workflows";
-import { verifyToken, generateToken } from "./temporal/jwtToken";
-import mongoose from "mongoose"
-import axios from 'axios'
-import { getToken } from "./utils/auth0TokenGenerator";
+
 import { createUserController,UpdateUserController,getAllUserController, deleteUserController } from "./controller";
 
 

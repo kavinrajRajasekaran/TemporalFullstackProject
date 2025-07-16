@@ -1,3 +1,7 @@
+
+
+
+
 // import { IUser,IUserDocument,UserModel } from "./userModel";
 import axios from 'axios'
 
@@ -8,9 +12,5 @@ let user={
     name:"dndndk"
 }
 console.log(await getToken())
-
-
-
-
 
 

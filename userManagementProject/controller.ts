@@ -1,12 +1,12 @@
-import { Router, Request, Response } from "express";
-import { IUser, IUserDocument, UserModel } from "./utils/userModel";
-const router = Router()
-import { getClient } from "./temporal/client";
-import { signupWorkflow, updateWorkflow, deleteUserInfoWorkflow } from "./temporal/workflows";
-import { verifyToken, generateToken } from "./temporal/jwtToken";
+import { Request, Response } from "express";
+import {  IUser, UserModel } from "./utils/userModel";
+
+import { getTemporalClient } from "./temporal/client";
+import { UserSignupWorkflow, UserUpdateWorkflow, deleteUserInfoWorkflow } from "./temporal/workflows";
+
 import mongoose from "mongoose"
 import axios from 'axios'
-import { getToken } from "./utils/auth0TokenGenerator";
+import { getAUth0Token } from "./utils/auth0TokenGenerator";
 
 
 
@@ -33,19 +33,21 @@ const { email, name, password } = req.body
         return
     }
 
-    let user: IUserDocument = await UserModel.create({
+    let user: IUser = await UserModel.create({
         name: name,
         email,
         password
     })
 
-    let temporalClient = await getClient()
+    // user.password=undefined
 
-    await temporalClient.workflow.start(signupWorkflow, {
+    let temporalClient = await getTemporalClient()
+
+    await temporalClient.workflow.start(UserSignupWorkflow, {
         taskQueue: 'user-management',
         startDelay: "1 minutes",
         workflowId: `signup-${user._id}`,
-        args: [user.name, user.email, user.password, user._id],
+        args: [user.name, user.email, user.password, user._id!],
     })
     res.status(200).json( user )
 
@@ -54,9 +56,9 @@ const { email, name, password } = req.body
 export async function UpdateUserController(req:Request,res:Response){
     
     
-        const { username, password } = req.body;
+        const { name, password } = req.body;
     
-        if (!username || !password) {
+        if (!name || !password) {
             res.status(400).json({
             message:"misssing input fields"
             })
@@ -67,12 +69,12 @@ export async function UpdateUserController(req:Request,res:Response){
             const userId = new mongoose.Types.ObjectId(req.params.id)
     
             const updateFields: Record<string, any> = {};
-            if (username) updateFields.name = username;
+            if (name) updateFields.name = name;
             if (password) updateFields.password = password;
     
             const user = await UserModel.findByIdAndUpdate(userId, updateFields, {
                 new: true,
-            });
+            }).select('-password')
     
             if (!user) {
               res.status(404).send("User not found");
@@ -84,10 +86,10 @@ export async function UpdateUserController(req:Request,res:Response){
                  return
             }
     
-            const client = await getClient();
+            const client = await getTemporalClient();
     
-            await client.workflow.start(updateWorkflow, {
-                args: [user.authId, user._id, username, password],
+            await client.workflow.start(UserUpdateWorkflow, {
+                args: [user.authId, user._id, name, password],
                 startDelay:"10 seconds",
                  
                 taskQueue: 'user-management',
@@ -106,7 +108,7 @@ export async function UpdateUserController(req:Request,res:Response){
 
 export async function getAllUserController(req:Request,res:Response){
       try {
-        const token = await getToken();
+        const token = await getAUth0Token();
         const response = await axios.get(`https:${process.env.AUTH0_DOMAIN}/api/v2/users`, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -133,29 +135,28 @@ let userId=new mongoose.Types.ObjectId(req.params.id)
 
         const user = await UserModel.findByIdAndUpdate(userId, { status: "deleting" }, {
             new: true,
-        });
+        }).select("-password")
 
         if (!user) {
             return res.status(404).send("User not found");
         }
-    console.log("user:"+user)
+   
         if (!user.authId) {
             return res.status(500).send("authId is missing for this user.");
         }
 
-        const client = await getClient();
+        const client = await getTemporalClient();
 
         await client.workflow.start(deleteUserInfoWorkflow, {
             args: [user.authId, user._id],
-            startDelay: "1 minutes",
+            startDelay: "30 seconds",
             taskQueue: 'user-management',
             workflowId: `delete-${Date.now()}`,
         });
 
         return res.status(200).json({ message: "User deletion  initiated"});
     } catch (error:any) {
-        console.error('Update error:', error);
-        console.log(error.message)
+       
         return res.status(500).send("Server error");
     }
 

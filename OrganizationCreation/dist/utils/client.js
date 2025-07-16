@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getClient = getClient;
 exports.deleter = deleter;
-exports.getAll = getAll;
+exports.getAllOrganizations = getAllOrganizations;
 const client_1 = require("@temporalio/client");
 const auth0_1 = require("auth0");
 let temporalClient = null;
@@ -37,7 +37,7 @@ function deleter(id) {
         });
     });
 }
-function getAll() {
+function getAllOrganizations() {
     return __awaiter(this, void 0, void 0, function* () {
         const management = new auth0_1.ManagementClient({
             clientId: process.env.AUTH0_CLIENT_ID,

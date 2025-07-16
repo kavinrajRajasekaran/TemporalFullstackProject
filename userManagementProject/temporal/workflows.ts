@@ -26,7 +26,7 @@ const {
   startToCloseTimeout: '2 minutes'
 
 });
-export async function signupWorkflow(
+export async function UserSignupWorkflow(
   name: string, email: string, password: string, _id: mongoose.Types.ObjectId
 ): Promise<void> {
   try {
@@ -36,10 +36,11 @@ export async function signupWorkflow(
     await updateUserStatusInDB(_id, "succeed", undefined, authId)
   } catch (err: any) {
     await updateUserStatusInDB(_id, "failed", "failed while updating to auth0");
+    throw err
   }
 }
 
-export async function updateWorkflow(authId: string, _id: mongoose.Types.ObjectId, name?: string, password?: string): Promise<void> {
+export async function UserUpdateWorkflow(authId: string, _id: mongoose.Types.ObjectId, name?: string, password?: string): Promise<void> {
   try {
     await updateUserInAuth0(authId, name, password)
     await sleep('5000')
@@ -51,6 +52,7 @@ export async function updateWorkflow(authId: string, _id: mongoose.Types.ObjectI
 
 
     await updateUserStatusInDB(_id, "failed", "failed while updating to auth0")
+    throw err
   }
 }
 
@@ -63,7 +65,9 @@ export async function deleteUserInfoWorkflow(authId: string, _id: mongoose.Types
 
   }
   catch (err: any) {
-    await updateUserStatusInDB(_id, "failed", "failed while deletion  to auth0", undefined)
+    await updateUserStatusInDB(_id, "failed", "failed while deletion  to auth0")
+    throw err
+        
   }
 }
 

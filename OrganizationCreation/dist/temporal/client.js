@@ -9,15 +9,42 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTemporalClient = getTemporalClient;
+exports.TemporalClient = TemporalClient;
+exports.deleter = deleter;
+exports.getAllOrganizations = getAllOrganizations;
 const client_1 = require("@temporalio/client");
+const auth0_1 = require("auth0");
 let temporalClient = null;
-function getTemporalClient() {
+//to get the temporal client
+function TemporalClient() {
     return __awaiter(this, void 0, void 0, function* () {
         if (temporalClient)
             return temporalClient;
         const connection = yield client_1.Connection.connect();
         temporalClient = new client_1.Client({ connection });
         return temporalClient;
+    });
+}
+function deleter(id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const management = new auth0_1.ManagementClient({
+            clientId: process.env.AUTH0_CLIENT_ID,
+            clientSecret: process.env.AUTH0_CLIENT_SECRET,
+            domain: process.env.AUTH0_DOMAIN,
+        });
+        const result = yield management.organizations.delete({
+            id: id
+        });
+    });
+}
+function getAllOrganizations() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const management = new auth0_1.ManagementClient({
+            clientId: process.env.AUTH0_CLIENT_ID,
+            clientSecret: process.env.AUTH0_CLIENT_SECRET,
+            domain: process.env.AUTH0_DOMAIN,
+        });
+        const result = yield management.organizations.getAll();
+        return result;
     });
 }

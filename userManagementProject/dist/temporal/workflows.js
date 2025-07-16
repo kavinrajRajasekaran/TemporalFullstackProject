@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.signupWorkflow = signupWorkflow;
-exports.updateWorkflow = updateWorkflow;
+exports.UserSignupWorkflow = UserSignupWorkflow;
+exports.UserUpdateWorkflow = UserUpdateWorkflow;
 exports.deleteUserInfoWorkflow = deleteUserInfoWorkflow;
 const workflow_1 = require("@temporalio/workflow");
 const { userCreationInAuth0, updateUserInAuth0, deleteUserInAuth0, deleteUserInDb } = (0, workflow_1.proxyActivities)({
@@ -29,7 +29,7 @@ const { updateUserStatusInDB } = (0, workflow_1.proxyActivities)({
     },
     startToCloseTimeout: '2 minutes'
 });
-function signupWorkflow(name, email, password, _id) {
+function UserSignupWorkflow(name, email, password, _id) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const authId = yield userCreationInAuth0(name, email, password);
@@ -38,10 +38,11 @@ function signupWorkflow(name, email, password, _id) {
         }
         catch (err) {
             yield updateUserStatusInDB(_id, "failed", "failed while updating to auth0");
+            throw err;
         }
     });
 }
-function updateWorkflow(authId, _id, name, password) {
+function UserUpdateWorkflow(authId, _id, name, password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield updateUserInAuth0(authId, name, password);
@@ -50,6 +51,7 @@ function updateWorkflow(authId, _id, name, password) {
         }
         catch (err) {
             yield updateUserStatusInDB(_id, "failed", "failed while updating to auth0");
+            throw err;
         }
     });
 }
@@ -61,7 +63,8 @@ function deleteUserInfoWorkflow(authId, _id) {
             yield deleteUserInDb(authId);
         }
         catch (err) {
-            yield updateUserStatusInDB(_id, "failed", "failed while deletion  to auth0", undefined);
+            yield updateUserStatusInDB(_id, "failed", "failed while deletion  to auth0");
+            throw err;
         }
     });
 }

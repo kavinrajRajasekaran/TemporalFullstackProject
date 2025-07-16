@@ -1,5 +1,4 @@
 "use strict";
-// temporal/worker.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -45,8 +44,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const worker_1 = require("@temporalio/worker");
 const activities = __importStar(require("./activity"));
+const db_1 = require("../utils/db");
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
+        yield (0, db_1.connectToMongo)();
         const worker = yield worker_1.Worker.create({
             workflowsPath: require.resolve('./workflows'),
             activities,

@@ -1,43 +1,49 @@
 import { sendEmail } from "../utils/mailsender";
 import { SendEmailOptions } from "../utils/mailsender";
-import { OrgModel,IOrg } from "../utils/OrgModel";
+import { OrganizationModel, IOrganization,IOrganizationUpdate} from "../models/OrganizationModel";
 import mongoose from 'mongoose'
 import { getToken } from "../utils/auth0TokenGenerator";
 import axios from 'axios';
-import { Iupdate } from "../utils/OrgModel";
-import { deleter } from "../utils/client";
+
+import { ManagementClient } from 'auth0';
 import { ApplicationFailure } from "@temporalio/common";
 
 
-export async function sendEmailActivity(content:SendEmailOptions){
-  try{
-   await sendEmail(content)
-  
-  }
-  catch(error:any){
-   
-   const statusCode = error?.response?.status;
+export async function sendEmailToUserActivity(options: SendEmailOptions) {
+  try {
+    await sendEmail(options)
 
-    
-    throw ApplicationFailure.create({
-      message: `Failed to send email ${statusCode}`,
-      type: "EmailErorr",
-      nonRetryable: statusCode >= 400 && statusCode < 500,
-    });
-    
- 
+  }
+  catch (error: any) {
+
+    const status = error.response?.status;
+    const isNonRetryable = status >= 400 && status < 500;
+
+
+    if (isNonRetryable) {
+      throw ApplicationFailure.create({
+        nonRetryable: true,
+        message: "Sending email to User Activity failed",
+        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
+      })
+    } else {
+
+      throw error;
+    }
+
+
   }
 
 }
 
-export async function OrgCreateActivity(Org: IOrg): Promise<string> {
+export async function OrganizationCreationInAuthActivity(Org: IOrganization): Promise<string> {
   const token = await getToken();
 
   const config = {
     method: 'post',
     maxBodyLength: Infinity,
-    url:`https://${process.env.AUTH0_DOMAIN}/api/v2/organizations`,
-    headers: { 
+    url: `https://${process.env.AUTH0_DOMAIN}/api/v2/organizations`,
+    headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'Authorization': `Bearer ${token}`
@@ -59,39 +65,50 @@ export async function OrgCreateActivity(Org: IOrg): Promise<string> {
     const response = await axios.request(config);
     return response.data.id;
   } catch (error: any) {
-    
-   const statusCode = error.response?.status;
-  
-    throw ApplicationFailure.create({
-      message: `Error while creating an organization ${statusCode}`,
-      type: "HttpErorr",
-      nonRetryable: statusCode >= 400 && statusCode < 500,
-    });
+
+    const status = error.response?.status;
+    const isNonRetryable = status >= 400 && status < 500;
+
+
+
+    if (isNonRetryable) {
+      throw ApplicationFailure.create({
+        nonRetryable: true,
+        message: "organization creation in the db auth0 activity failed",
+        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
+      })
+    } else {
+
+      throw error;
+    }
+
   }
 }
 
 
-export async function statusUpdateActivity(
+
+
+export async function OrganizationStatusUpdateInDBActivity(
   id: mongoose.Types.ObjectId,
   status?: string,
   failureReason?: string,
   authid?: string
-): Promise<IOrg | undefined> {
+): Promise<IOrganization | undefined> {
   try {
-    const orgDoc = await OrgModel.findById(id);
+    const orgDoc = await OrganizationModel.findById(id);
 
     if (!orgDoc) {
       throw new Error('Organization not found');
     }
 
-   
+
     if (status) {
-      
+
       orgDoc.status = status as any;
     }
 
     if (failureReason) {
-      
+
       orgDoc.metadata.failureReason = failureReason;
     }
 
@@ -100,113 +117,156 @@ export async function statusUpdateActivity(
     }
 
     await orgDoc.save();
-    
-    const org = orgDoc.toObject() as IOrg;
+
+    const org = orgDoc.toObject() as IOrganization;
     return org;
-  } catch (err: any) {
-    throw new Error(`Error while updating the status: ${err.message}`);
+  } catch (error: any) {
+    const statusCode = error.response?.status;
+    throw ApplicationFailure.create({
+      message: `status updation in the DB activity failed ${statusCode}`,
+      type: 'DBError',
+      nonRetryable: statusCode >= 400 && statusCode < 500,
+      details: [{
+        statusCode,
+        responseData: error.response?.data ?? null,
+        originalMessage: error.message,
+
+      }],
+    });
   }
 }
 
-export async function updateActivity(id:any,update:Iupdate){
-const token=await getToken()
+export async function UpdateOrganizationAuthActivity(id: any, update: IOrganizationUpdate) {
+  const token = await getToken()
 
- 
 
-let config = {
-  method: 'patch',
-  maxBodyLength: Infinity,
-  url: `https://${process.env.AUTH0_DOMAIN}/api/v2/organizations/${id}`,
-  headers: { 
-    'Content-Type': 'application/json', 
-    'Accept': 'application/json', 
-    'Authorization':`Bearer ${token}` 
-  },
-  data :JSON.stringify(update)
-};
 
-await axios.request(config)
-.then((response) => {
-  return response.data
-  
+  let config = {
+    method: 'patch',
+    maxBodyLength: Infinity,
+    url: `https://${process.env.AUTH0_DOMAIN}/api/v2/organizations/${id}`,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    data: JSON.stringify(update)
+  };
 
-})
-.catch((error:any) => {
+  await axios.request(config)
+    .then((response) => {
+      return response.data
 
-   const statusCode = error.response?.status;
 
-    
-    throw ApplicationFailure.create({
-      message: `Failed to update the org in the Auth0 ${statusCode}`,
-      type: "HttpErorr",
-      nonRetryable: statusCode >= 400 && statusCode < 500,
+    })
+    .catch((error: any) => {
+
+      const statusCode = error.response?.status;
+      throw ApplicationFailure.create({
+        message: `Error while updating the organization in auth0 ${statusCode}`,
+        type: 'HttpError',
+        nonRetryable: statusCode >= 400 && statusCode < 500,
+        details: [{
+          statusCode,
+          responseData: error.response?.data ?? null,
+          originalMessage: error.message,
+
+        }],
+      });
+
+
+    })
+
+}
+
+
+
+export async function deleteInAuth0Activity(id: string) {
+  try {
+
+    const management = new ManagementClient({
+      clientId: process.env.AUTH0_CLIENT_ID!,
+      clientSecret: process.env.AUTH0_CLIENT_SECRET!,
+      domain: process.env.AUTH0_DOMAIN!,
     });
 
-})
+    await management.organizations.delete({
+      id: id
+    });
 
-}
-export async function createInDB(organization:IOrg):Promise<mongoose.Types.ObjectId|undefined>{
-try{
+  }
+  catch (error: any) {
 
- const Org= await OrgModel.create(organization)
- return Org._id
+    const statusCode = error.response?.status;
 
-}
-catch(err:any){
-   const statusCode = err.response?.status;
-
-    
     throw ApplicationFailure.create({
-      message: `Failed to update the org in the Auth0 ${statusCode}`,
-      type: "HttpErorr",
+      message: `Error while deleting oganization in the auth0 ${statusCode}`,
+      type: 'HttpError',
       nonRetryable: statusCode >= 400 && statusCode < 500,
-     
+      details: [{
+        statusCode,
+        responseData: error.response?.data ?? null,
+        originalMessage: error.message,
+
+      }],
     });
 
 
-}
+  }
 
 }
 
 
-export async function deleteActivity(id:string){
+export async function deleteInDBActivity(id: mongoose.Types.ObjectId) {
+  try {
+
+    await OrganizationModel.findByIdAndDelete(new mongoose.Types.ObjectId(id))
+  }
+  catch (error: any) {
+
+    const statusCode = error.response?.status || 500;
+
+
+    throw ApplicationFailure.create({
+      message: `Error while deleting organization in database activity ${statusCode}`,
+      type: 'DBErorr',
+      nonRetryable: statusCode >= 400 && statusCode < 500,
+      details: [{
+        statusCode,
+        responseData: error.response?.data ?? null,
+        originalMessage: error.message,
+
+      }],
+    });
+
+  }
+
+
+}
+
+
+export async function updateOrganizationInDBActivity(organization:IOrganization,id:mongoose.Types.ObjectId):Promise<IOrganization|undefined>{
   try{
-  await deleter(id)
-  
+   let newOrganization= await OrganizationModel.findByIdAndUpdate(new mongoose.Types.ObjectId(id),organization)
+   return newOrganization||undefined
   }
   catch(error:any){
-   
-   const statusCode = error.response?.status;
-    
-    
+const statusCode = error.response?.status || 500;
+
+
     throw ApplicationFailure.create({
-      message: `Error while deleting the org in the Auth0 ${statusCode}`,
-      type: "HttpErorr",
+      message: `Error while creating user organization in database activity ${statusCode}`,
+      type: 'DBErorr',
       nonRetryable: statusCode >= 400 && statusCode < 500,
+      details: [{
+        statusCode,
+        responseData: error.response?.data ?? null,
+        originalMessage: error.message,
+
+      }],
     });
+
+
   }
-
-
-
-
-}
-
-
-export async function deleteInDBActivity(id:mongoose.Types.ObjectId){
-    try{
-
-      await OrgModel.findByIdAndDelete(new mongoose.Types.ObjectId(id))
-    }
-    catch(error:any){
-      
-   const statusCode = error.response?.status;
-
-    
-    throw ApplicationFailure.create({
-      message: `error while deleting in DB ${statusCode}`,
-      type: "DatabaseError",
-      nonRetryable: statusCode >= 400 && statusCode < 500,
-    });
-    }
 }
 

@@ -1,107 +1,115 @@
-import { proxyActivities, sleep,condition,setHandler,defineSignal } from '@temporalio/workflow';
+import { proxyActivities, sleep, condition, setHandler, defineUpdate } from '@temporalio/workflow';
 import type * as activities from './activity';
-import { OrgModel,IOrg, Iupdate} from '../utils/OrgModel';
+import { IOrganization } from '../models/OrganizationModel';
+import { OrganizationupdateWorkflowInput, OrganizationDeleteWorkflowInput } from '../utils/shared';
 
-import mongoose from 'mongoose';
-export const updateOrgSignal = defineSignal<[string]>('updateOrgSignal');
-
-
-const {OrgCreateActivity,sendEmailActivity,updateActivity,deleteActivity,createInDB}=proxyActivities<typeof activities>({
-startToCloseTimeout:"2 minutes",
-retry: {
-  maximumAttempts: 5,
- 
-  maximumInterval: '5 seconds',
-  backoffCoefficient: 1,
-  
-}
+export const updateOrgSignal= defineUpdate<string,[IOrganization]>('updateOrgSignal');
 
 
-})
-const {statusUpdateActivity,deleteInDBActivity}=proxyActivities<typeof activities>({
- startToCloseTimeout:"2 minutes",
-retry: {
-  maximumAttempts: 10,
-  initialInterval: '5s',
-  maximumInterval: '5 seconds',
-  backoffCoefficient: 1,
-  
-}
+
+
+
+const {OrganizationCreationInAuthActivity, sendEmailToUserActivity, deleteInAuth0Activity,updateOrganizationInDBActivity, OrganizationStatusUpdateInDBActivity, deleteInDBActivity, UpdateOrganizationAuthActivity } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "2 minutes",
+  retry: {
+    maximumAttempts: 5,
+    initialInterval: '5s',
+    maximumInterval: '5 seconds',
+    backoffCoefficient: 2,
+
+  }
 
 
 })
 
-export async function createOrgWorkflow(Org:IOrg,id: mongoose.Types.ObjectId ){
-
+export async function createOrganizationWorkflow(Organization: IOrganization) {
   
-
-  let display_name:string | undefined;
-
+try {
+  let updatedOrgData:IOrganization| undefined;
+let timeout:boolean=false
   
-  setHandler(updateOrgSignal, (displayName) => {
-    display_name=displayName
+  setHandler(updateOrgSignal, (newData:IOrganization) => {
+    updatedOrgData = newData;
+    if(timeout){
+      return "failed to update "
+    }
+    return 'successfully updated';
   });
 
- 
-  await condition(() => display_name !== undefined, '1 minute');
 
- 
-  if(display_name) Org["display_name"]=display_name
 
-  try{
-    
-    
-    await statusUpdateActivity(id!,'provisoning')
-  let authId:string|undefined=await OrgCreateActivity(Org)
+
   
-   await sendEmailActivity({to:Org.metadata.createdByEmail,subject:'your organization created successfully'})
-  await statusUpdateActivity(id!,'succeed',undefined,authId)
+  const updateReceived = await condition(() => updatedOrgData !== undefined, '1 minute');
      
-
-  }
-  catch(err){
-    if(id!==undefined){
-      await statusUpdateActivity(id,'failure',undefined)
-    }
-    throw  err
+    timeout=true
+  if(updateReceived&&updatedOrgData){
+    updatedOrgData=await updateOrganizationInDBActivity(updatedOrgData,Organization._id!)
+    Organization=updatedOrgData!
     
   }
- 
-
-}
-
-
-export async function updateWorkflow(authId:any,update:Iupdate,receiver:string,id:mongoose.Types.ObjectId){
-  try{
-      await statusUpdateActivity(id,'updating')
-    await updateActivity(authId,update)
-    await sendEmailActivity({to:receiver,subject:'updated your organization'})
-    await statusUpdateActivity(id,'succeed')
   
+    
+
+  
+
+
+    await OrganizationStatusUpdateInDBActivity(Organization._id!, 'provisoning')
+
+    let authId: string | undefined = await OrganizationCreationInAuthActivity(Organization)
+
+    await sendEmailToUserActivity({ to: Organization.metadata.createdByEmail, subject: 'your organization created successfully' })
+
+    await OrganizationStatusUpdateInDBActivity(Organization._id!, 'succeed', undefined, authId)
+
+
   }
-  catch(err){
- await statusUpdateActivity(id,'failure','failed while updating the organization')
- throw err
+  catch (err) {
+    if (Organization._id !== undefined) {
+
+      await OrganizationStatusUpdateInDBActivity(Organization._id!, 'failure', undefined)
+
+    }
+    throw err
+
+  }
+
+
+}
+
+
+export async function updateOrganizationWorkflow(input: OrganizationupdateWorkflowInput) {
+  try {
+    await OrganizationStatusUpdateInDBActivity(input.id, 'updating')
+    await UpdateOrganizationAuthActivity(input.authId, input.update)
+    await OrganizationStatusUpdateInDBActivity(input.id, 'succeed')
+    await sendEmailToUserActivity({ to: input.receiver, subject: 'updated your organization' })
+
+
+  }
+  catch (err) {
+    await OrganizationStatusUpdateInDBActivity(input.id, 'failure', 'failed while updating the organization')
+    throw err
   }
 
 }
 
 
-export async function deleteWorkflow(authId:any,receiver:string,id:mongoose.Types.ObjectId){
-  try{
-   await deleteActivity(authId)
-   await deleteInDBActivity(id)
+export async function deleteOrganizationWorkflow(input: OrganizationDeleteWorkflowInput) {
+  try {
+    await deleteInAuth0Activity(input.authId)
+    await deleteInDBActivity(input.id)
 
-   await sendEmailActivity({to:receiver,subject:"your org is successfully deleted"})
+    await sendEmailToUserActivity({ to: input.receiver, subject: "your org is successfully deleted" })
 
   }
-  catch(err:any){
-    await statusUpdateActivity(id,'failure',"failed while deleting organization")
-    throw  err
+  catch (err: any) {
+    await OrganizationStatusUpdateInDBActivity(input.id, 'failure', "failed while deleting organization")
+    throw err
   }
 }
 
 
 
 
- 
+

@@ -1,7 +1,7 @@
 let cachedToken: string | null = null;
 let tokenExpiry: number = 0;// Unix timestamp in ms
 
-export async function getToken(): Promise<string|null|undefined> {
+export async function getAUth0Token(): Promise<string|null|undefined> {
   const now = Date.now();
 
   // If token exists and not expired, reuse it

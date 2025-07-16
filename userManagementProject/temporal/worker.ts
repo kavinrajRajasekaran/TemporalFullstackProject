@@ -1,8 +1,8 @@
-// temporal/worker.ts
-
 import { Worker } from '@temporalio/worker';
 import * as activities from './activity';
+import { connectToMongo } from "../utils/db";
 async function run() {
+  await connectToMongo()
   const worker = await Worker.create({
     workflowsPath: require.resolve('./workflows'),
     activities,

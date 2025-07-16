@@ -9,10 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTemporalClient = getTemporalClient;
+exports.TemporalClient = TemporalClient;
 const client_1 = require("@temporalio/client");
 let temporalClient = null;
-function getTemporalClient() {
+//to get the temporal client
+function TemporalClient() {
     return __awaiter(this, void 0, void 0, function* () {
         if (temporalClient)
             return temporalClient;
