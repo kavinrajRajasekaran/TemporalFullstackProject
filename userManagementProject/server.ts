@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import router from './router'
 
 const app = express();
-import { connectToMongo } from './utils/db';
+import { connectToMongo } from './config/db';
 app.use(express.json());
 connectToMongo()
 

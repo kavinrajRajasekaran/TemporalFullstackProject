@@ -1,4 +1,4 @@
-import {  UserModel, status } from "../utils/userModel";
+import { UserModel, status } from "../models/userModel";
 import axios from 'axios'
 import mongoose from 'mongoose'
 import { getAUth0Token } from "../utils/auth0TokenGenerator";
@@ -63,7 +63,7 @@ export async function updateUserStatusInDB(
     if (authId) update.authId = authId;
 
     const user = await UserModel.findByIdAndUpdate(userId, update, {
-      new: true, 
+      new: true,
     });
 
     if (!user) {
@@ -115,7 +115,7 @@ export async function updateUserInAuth0(authId: string, name?: string, password?
 
     console.log(`Auth0 user ${authId} updated`);
   } catch (error: any) {
-   const status = error.response?.status;
+    const status = error.response?.status;
     const isNonRetryable = status >= 400 && status < 500;
 
     console.error(' Auth0 status update failed:', error.response?.data || error.message);
