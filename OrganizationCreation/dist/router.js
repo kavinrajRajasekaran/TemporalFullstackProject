@@ -15,7 +15,7 @@ router.delete('/organizations/:id', OrganizationControllers_1.deleteOrganization
 //to cancel an organization
 router.post('/workflow/:workflowId/cancel', workflowSignallingControllers_1.OrganizationCancelWorkflowController);
 //to update an organization 
-router.post('/workflow/:workflowId/update', workflowSignallingControllers_1.OrganizationUpdateWorkflowController);
+router.put('/workflow/:workflowId/update', workflowSignallingControllers_1.OrganizationUpdateWorkflowController);
 //to terminate an organization 
 router.post('/workflow/:workflowId/terminate', workflowSignallingControllers_1.OrganizationTerminateWorkflowController);
 exports.default = router;

@@ -1,12 +1,12 @@
 
 import { Worker } from '@temporalio/worker';
-import * as activities from './activity';
+import * as activities from './activities';
 import { connectToMongo } from '../utils/db';
 async function run() {
-   await connectToMongo()
+  await connectToMongo()
   const worker = await Worker.create({
-   
-    workflowsPath:require.resolve('./workflows'),
+
+    workflowsPath: require.resolve('./workflows'),
     activities,
     taskQueue: 'organizationManagement'
   });

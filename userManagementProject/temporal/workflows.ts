@@ -1,5 +1,5 @@
 import { proxyActivities, sleep } from '@temporalio/workflow';
-import type * as activities from './activity';
+import type * as activities from './activities';
 import mongoose from 'mongoose';
 
 const {
@@ -67,7 +67,7 @@ export async function deleteUserInfoWorkflow(authId: string, _id: mongoose.Types
   catch (err: any) {
     await updateUserStatusInDB(_id, "failed", "failed while deletion  to auth0")
     throw err
-        
+
   }
 }
 

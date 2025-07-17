@@ -1,15 +1,15 @@
 import { proxyActivities, sleep, condition, setHandler, defineUpdate } from '@temporalio/workflow';
-import type * as activities from './activity';
+import type * as activities from './activities';
 import { IOrganization } from '../models/OrganizationModel';
 import { OrganizationupdateWorkflowInput, OrganizationDeleteWorkflowInput } from '../utils/shared';
 
-export const updateOrgSignal= defineUpdate<string,[IOrganization]>('updateOrgSignal');
+export const updateOrgSignal = defineUpdate<string, [IOrganization]>('updateOrgSignal');
 
 
 
 
 
-const {OrganizationCreationInAuthActivity, sendEmailToUserActivity, deleteInAuth0Activity,updateOrganizationInDBActivity, OrganizationStatusUpdateInDBActivity, deleteInDBActivity, UpdateOrganizationAuthActivity } = proxyActivities<typeof activities>({
+const { OrganizationCreationInAuthActivity, sendEmailToUserActivity, deleteInAuth0Activity, updateOrganizationInDBActivity, OrganizationStatusUpdateInDBActivity, deleteInDBActivity, UpdateOrganizationAuthActivity } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
   retry: {
     maximumAttempts: 5,
@@ -23,35 +23,35 @@ const {OrganizationCreationInAuthActivity, sendEmailToUserActivity, deleteInAuth
 })
 
 export async function createOrganizationWorkflow(Organization: IOrganization) {
-  
-try {
-  let updatedOrgData:IOrganization| undefined;
-let timeout:boolean=false
-  
-  setHandler(updateOrgSignal, (newData:IOrganization) => {
-    updatedOrgData = newData;
-    if(timeout){
-      return "failed to update "
+
+  try {
+    let updatedOrgData: IOrganization | undefined;
+    let timeout: boolean = false
+
+    setHandler(updateOrgSignal, (newData: IOrganization) => {
+      updatedOrgData = newData;
+      if (timeout) {
+        return "failed to update "
+      }
+      return 'successfully updated';
+    });
+
+
+
+
+
+    const updateReceived = await condition(() => updatedOrgData !== undefined, '1 minute');
+
+    timeout = true
+    if (updateReceived && updatedOrgData) {
+      updatedOrgData = await updateOrganizationInDBActivity(updatedOrgData, Organization._id!)
+      Organization = updatedOrgData!
+
     }
-    return 'successfully updated';
-  });
 
 
 
 
-  
-  const updateReceived = await condition(() => updatedOrgData !== undefined, '1 minute');
-     
-    timeout=true
-  if(updateReceived&&updatedOrgData){
-    updatedOrgData=await updateOrganizationInDBActivity(updatedOrgData,Organization._id!)
-    Organization=updatedOrgData!
-    
-  }
-  
-    
-
-  
 
 
     await OrganizationStatusUpdateInDBActivity(Organization._id!, 'provisoning')

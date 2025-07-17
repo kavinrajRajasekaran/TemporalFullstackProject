@@ -43,7 +43,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const worker_1 = require("@temporalio/worker");
-const activities = __importStar(require("./activity"));
+const activities = __importStar(require("./activities"));
 const db_1 = require("../utils/db");
 function run() {
     return __awaiter(this, void 0, void 0, function* () {

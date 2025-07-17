@@ -74,7 +74,7 @@ export async function OrganizationCreationInAuthActivity(Org: IOrganization): Pr
     if (isNonRetryable) {
       throw ApplicationFailure.create({
         nonRetryable: true,
-        message: "organization creation in the db auth0 activity failed",
+        message: "organization creation in the  auth0 activity failed",
         details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
       })
     } else {
@@ -246,8 +246,12 @@ export async function deleteInDBActivity(id: mongoose.Types.ObjectId) {
 
 
 export async function updateOrganizationInDBActivity(organization:IOrganization,id:mongoose.Types.ObjectId):Promise<IOrganization|undefined>{
+ 
+   
+  
   try{
-   let newOrganization= await OrganizationModel.findByIdAndUpdate(new mongoose.Types.ObjectId(id),organization)
+    let orgId=new mongoose.Types.ObjectId(id)
+   let newOrganization= await OrganizationModel.findByIdAndUpdate(orgId,organization)
    return newOrganization||undefined
   }
   catch(error:any){
@@ -269,4 +273,5 @@ const statusCode = error.response?.status || 500;
 
   }
 }
+
 

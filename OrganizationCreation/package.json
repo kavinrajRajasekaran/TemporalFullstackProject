@@ -18,16 +18,22 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@temporalio/testing": "^1.12.1",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^24.0.10",
+    "@types/sinon": "^17.0.4",
+    "mocha": "^11.7.1",
+    "sinon": "^21.0.0",
+    "source-map-support": "^0.5.21",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },
   "scripts": {
-    
     "start": "tsx --require dotenv/config server.ts",
-    "worker": "tsx --require dotenv/config temporal/worker.ts"
+    "worker": "tsx --require dotenv/config temporal/worker.ts",
+    "test":"mocha -r ts-node/register 'testing/**/*.test.ts'"
   }
- 
+
 }

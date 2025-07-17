@@ -1,5 +1,5 @@
 import { Worker } from '@temporalio/worker';
-import * as activities from './activity';
+import * as activities from './activities';
 import { connectToMongo } from "../config/db";
 async function run() {
   await connectToMongo()
