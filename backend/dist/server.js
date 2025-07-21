@@ -20,10 +20,13 @@ const db_1 = require("./config/db");
 app.use(express_1.default.json());
 (0, db_1.connectToMongo)();
 app.get('/health', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    res.send(200).json({ "status": "ok" });
+    res.status(200).json({ "status": "ok" });
 }));
 app.use('/api/organizations', Organizationroutes_1.default);
 app.use('/api/users', UserRoutes_1.default);
-app.listen(3000, () => {
-    console.log('app listening on the port 3000');
-});
+if (require.main === module) {
+    app.listen(3000, () => {
+        console.log('app listening on the port 3000');
+    });
+}
+exports.default = app;

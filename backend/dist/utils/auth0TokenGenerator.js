@@ -10,12 +10,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAuth0Token = getAuth0Token;
+const AppError_1 = require("../Errors/AppError");
 let cachedToken = null;
-let tokenExpiry = 0; // Unix timestamp in ms
+let tokenExpiry = 0;
 function getAuth0Token() {
     return __awaiter(this, void 0, void 0, function* () {
         const now = Date.now();
-        // If token exists and not expired, reuse it
         if (cachedToken && now < tokenExpiry - 60 * 1000) {
             return cachedToken;
         }
@@ -36,8 +36,14 @@ function getAuth0Token() {
             const data = yield response.json();
             return data.access_token;
         }
-        catch (error) {
-            console.error('Error fetching token:', error);
+        catch (err) {
+            const { statusCode, message } = err;
+            if (statusCode && (statusCode >= 400 || statusCode < 500)) {
+                throw new AppError_1.AppError(message, statusCode);
+            }
+            else {
+                throw new AppError_1.AppError("Internal server error", 500);
+            }
         }
     });
 }

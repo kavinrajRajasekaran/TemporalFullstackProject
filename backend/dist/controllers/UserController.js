@@ -19,9 +19,12 @@ exports.deleteUserController = deleteUserController;
 const userModel_1 = require("../models/userModel");
 const TemporalClient_1 = require("../temporal/TemporalClient");
 const UserWorkflows_1 = require("../temporal/workflows/UserWorkflows");
+const handleControllerError_1 = require("../Errors/handleControllerError");
 const mongoose_1 = __importDefault(require("mongoose"));
 const axios_1 = __importDefault(require("axios"));
 const auth0TokenGenerator_1 = require("../utils/auth0TokenGenerator");
+const mailsender_1 = require("../utils/mailsender");
+const shared_1 = require("../utils/shared");
 function createUserController(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -30,7 +33,7 @@ function createUserController(req, res) {
                 let missingFields = [];
                 if (!email)
                     missingFields.push("email");
-                if (!name)
+                if (!name || !name.trim())
                     missingFields.push("name");
                 if (!password)
                     missingFields.push("password");
@@ -40,15 +43,24 @@ function createUserController(req, res) {
                 });
                 return;
             }
-            let user = yield userModel_1.UserModel.findOne({ email });
+            if (!name.trim()) {
+                return res.status(400).send("Invalid user name");
+            }
+            if (!(0, shared_1.isStrongPassword)(password)) {
+                return res.status(400).send("Invalid password. It must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be at least 8 characters long.");
+            }
+            if (!(0, mailsender_1.isValidEmail)(email)) {
+                res.status(400).send("Enter a valid email");
+            }
+            let user = yield userModel_1.UserModel.findOne({ email: email.toLowerCase() });
             if (user) {
                 res.status(409).json("User already exists");
                 return;
             }
             let Newuser = yield userModel_1.UserModel.create({
-                name: name,
-                email,
-                password
+                name: name.toLowerCase(),
+                email: email.toLowerCase(),
+                password: password
             });
             let temporalClient = yield (0, TemporalClient_1.TemporalClient)();
             yield temporalClient.workflow.start(UserWorkflows_1.UserSignupWorkflow, {
@@ -60,10 +72,7 @@ function createUserController(req, res) {
             res.status(200).json(Newuser);
         }
         catch (err) {
-            res.status(500).send({
-                message: "User creation failed ",
-            });
-            return;
+            return (0, handleControllerError_1.handleControllerError)(err, res, "User creation failed");
         }
     });
 }
@@ -77,7 +86,13 @@ function UpdateUserController(req, res) {
                 });
                 return;
             }
-            const userId = new mongoose_1.default.Types.ObjectId(req.params.id);
+            let userId;
+            try {
+                userId = new mongoose_1.default.Types.ObjectId(req.params.id);
+            }
+            catch (e) {
+                return res.status(400).send('Invalid user id');
+            }
             const updateFields = {};
             if (name)
                 updateFields.name = name;
@@ -104,10 +119,8 @@ function UpdateUserController(req, res) {
             res.status(200).json({ message: "User update initiated", user });
             return;
         }
-        catch (error) {
-            res.status(500).json({
-                message: " updating the user failed"
-            });
+        catch (err) {
+            return (0, handleControllerError_1.handleControllerError)(err, res, "Updating the user failed");
         }
     });
 }
@@ -122,10 +135,8 @@ function getAllUserController(req, res) {
             });
             res.status(200).json(response.data);
         }
-        catch (error) {
-            res.status(500).json({
-                message: 'Failed to fetch users from Auth0',
-            });
+        catch (err) {
+            return (0, handleControllerError_1.handleControllerError)(err, res, "Failed to fetch users from Auth0");
         }
     });
 }
@@ -150,10 +161,8 @@ function deleteUserController(req, res) {
             });
             res.status(200).json({ message: "User deletion  initiated" });
         }
-        catch (error) {
-            res.status(500).json({
-                message: "Deletion of user failed "
-            });
+        catch (err) {
+            return (0, handleControllerError_1.handleControllerError)(err, res, "Deletion of user failed");
         }
     });
 }

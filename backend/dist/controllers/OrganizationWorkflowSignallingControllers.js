@@ -13,6 +13,7 @@ exports.OrganizationTerminateWorkflowController = OrganizationTerminateWorkflowC
 exports.OrganizationCancelWorkflowController = OrganizationCancelWorkflowController;
 exports.OrganizationUpdateWorkflowController = OrganizationUpdateWorkflowController;
 const TemporalClient_1 = require("../temporal/TemporalClient");
+const handleControllerError_1 = require("../Errors/handleControllerError");
 function OrganizationTerminateWorkflowController(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         const { workflowId } = req.params;
@@ -23,10 +24,7 @@ function OrganizationTerminateWorkflowController(req, res) {
             res.status(204).send("successfully terminated");
         }
         catch (err) {
-            res.json({
-                statusCode: err.status,
-                message: err === null || err === void 0 ? void 0 : err.message
-            });
+            return (0, handleControllerError_1.handleControllerError)(err, res, "Failed to terminate workflow");
         }
     });
 }
@@ -40,10 +38,7 @@ function OrganizationCancelWorkflowController(req, res) {
             res.status(204).send("successfully cancel request send ");
         }
         catch (err) {
-            res.json({
-                statusCode: err.status,
-                message: err === null || err === void 0 ? void 0 : err.message
-            });
+            return (0, handleControllerError_1.handleControllerError)(err, res, "Failed to cancel workflow");
         }
     });
 }
@@ -87,13 +82,13 @@ function OrganizationUpdateWorkflowController(req, res) {
             let updatestatus = yield OrgupdateHandler.executeUpdate("updateOrgSignal", {
                 args: [organization]
             });
-            res.status(200).send("Signal sent successfully");
+            res.status(200).json({
+                message: "Update signal sent",
+                result: updatestatus
+            });
         }
         catch (err) {
-            res.json({
-                statusCode: err.status,
-                message: (err === null || err === void 0 ? void 0 : err.message) || "error while sending update signal to workflow"
-            });
+            return (0, handleControllerError_1.handleControllerError)(err, res, "error while sending update signal to workflow");
         }
     });
 }

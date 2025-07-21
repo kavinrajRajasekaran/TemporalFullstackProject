@@ -56,7 +56,7 @@ function deleteUserInfoWorkflow(authId, _id) {
             yield deleteUserInDb(authId);
         }
         catch (err) {
-            yield updateUserStatusInDB({ userId: _id, statusValue: "failed", failureReason: "failed while deletion  to auth0" });
+            yield updateUserStatusInDB({ userId: _id, statusValue: "failed", failureReason: "failed while deletion to auth0" });
             throw err;
         }
     });

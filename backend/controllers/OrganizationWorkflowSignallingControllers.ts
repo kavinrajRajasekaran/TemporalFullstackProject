@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { TemporalClient } from '../temporal/TemporalClient'
 import { IOrganization } from '../models/OrganizationModel'
+import { handleControllerError } from '../Errors/handleControllerError';
 
 export async function OrganizationTerminateWorkflowController(req: Request, res: Response) {
     const { workflowId } = req.params
@@ -12,11 +13,7 @@ export async function OrganizationTerminateWorkflowController(req: Request, res:
         res.status(204).send("successfully terminated")
     }
     catch (err: any) {
-        res.json({
-            statusCode: err.status,
-            message: err?.message
-
-        })
+        return handleControllerError(err, res, "Failed to terminate workflow");
     }
 
 }
@@ -32,12 +29,7 @@ export async function OrganizationCancelWorkflowController(req: Request, res: Re
         res.status(204).send("successfully cancel request send ")
     }
     catch (err: any) {
-        res.json({
-            statusCode: err.status,
-            message: err?.message
-
-        })
-
+        return handleControllerError(err, res, "Failed to cancel workflow");
     }
 
 }
@@ -102,12 +94,11 @@ export async function OrganizationUpdateWorkflowController(req: Request, res: Re
             args:[organization]
         });
 
-        res.status(200).send("Signal sent successfully");
+        res.status(200).json({
+     message: "Update signal sent",
+      result: updatestatus
+        });
     } catch (err: any) {
-        res.json({
-            statusCode: err.status,
-            message: err?.message||"error while sending update signal to workflow"
-
-        })
+        return handleControllerError(err, res, "error while sending update signal to workflow");
     }
 }

@@ -27,28 +27,31 @@ export async function userCreationInAuth0(input:userCreationInAuth0Input): Promi
       }
     );
     return res.data.user_id;
-  } catch (error: any) {
-    const status = error.response?.status;
-    const isNonRetryable = status >= 400 && status < 500;
-
-    console.error(' Auth0 creation failed:', error.response?.data || error.message);
-
-    if (isNonRetryable) {
-      throw ApplicationFailure.create({
-        nonRetryable: true,
-        message: "error while creation of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
-    } else {
- throw ApplicationFailure.create({
-        nonRetryable: false,
-        message: "error while creation of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
-      
-    }
   }
-
+  catch (error: any) {
+    let status: number;
+    let errorData: any = null;
+  
+    if (error instanceof AppError) {
+      status = error.status;
+      errorData = { message: error.message }; 
+    } else {
+      status = error.response?.status ?? 500;
+      errorData = error.response?.data ?? null;
+    }
+  
+    const details = {
+      statusCode: status,
+      errorData,
+    };
+  
+    throw ApplicationFailure.create({
+      nonRetryable: status >= 400 && status < 500,
+      message: "Error while creating user status in Auth0",
+      details: [JSON.stringify(details)],
+    });
+  }
+  
 
 }
 
@@ -72,26 +75,32 @@ export async function updateUserStatusInDB(input:updateUserStatusInDBInput) {
     }
 
     return user;
-  } catch (error: any) {
-    const status = error.response?.status;
-    const isNonRetryable = status >= 400 && status < 500;
-
-    console.error(' Auth0 status update failed:', error.response?.data || error.message);
-
-    if (isNonRetryable) {
-      throw ApplicationFailure.create({
-        nonRetryable: true,
-        message: "error while updation status of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
+  } 
+  catch (error: any) {
+    let status: number;
+    let errorData: any = null;
+  
+    if (error instanceof AppError) {
+      status = error.status;
+      errorData = { message: error.message }; 
     } else {
-    throw ApplicationFailure.create({
-        nonRetryable: false,
-        message: "error while updation status of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
+      status = error.response?.status ?? 500;
+      errorData = error.response?.data ?? null;
     }
+  
+    const details = {
+      statusCode: status,
+      errorData,
+    };
+  
+    throw ApplicationFailure.create({
+      nonRetryable: status >= 400 && status < 500,
+      message: "Error while updating user status in database",
+      details: [JSON.stringify(details)],
+    });
   }
+  
+  
 
 }
 
@@ -120,28 +129,33 @@ export async function updateUserInAuth0(input:updateUserInAuth0Input): Promise<v
       }
     );
 
-    console.log(`Auth0 user ${input.authId} updated`);
-  } catch (error: any) {
-    const status = error.response?.status;
-    const isNonRetryable = status >= 400 && status < 500;
-
-    
-
-    if (isNonRetryable) {
-      throw ApplicationFailure.create({
-        nonRetryable: true,
-        message: "error while updation status of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
+   
+  } 
+  catch (error: any) {
+    let status: number;
+    let errorData: any = null;
+  
+    if (error instanceof AppError) {
+      status = error.status;
+      errorData = { message: error.message }; 
     } else {
-
-       throw ApplicationFailure.create({
-        nonRetryable: false,
-        message: "error while updation status of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
+      status = error.response?.status ?? 500;
+      errorData = error.response?.data ?? null;
     }
+  
+    const details = {
+      statusCode: status,
+      errorData,
+    };
+  
+    throw ApplicationFailure.create({
+      nonRetryable: status >= 400 && status < 500,
+      message: "Error while updating user status in auth0",
+      details: [JSON.stringify(details)]
+    });
   }
+  
+
 }
 
 export async function deleteUserInAuth0(authId: string): Promise<void> {
@@ -162,27 +176,33 @@ export async function deleteUserInAuth0(authId: string): Promise<void> {
     );
 
    
-  } catch (error: any) {
-    const status = error.response?.status;
-    const isNonRetryable = status >= 400 && status < 500;
-
-   
-    if (isNonRetryable) {
-      throw ApplicationFailure.create({
-        nonRetryable: true,
-        message: "error while deletion of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
+  } 
+  catch (error: any) {
+    let status: number;
+    let errorData: any = null;
+  
+    if (error instanceof AppError) {
+      status = error.status;
+      errorData = { message: error.message }; // or leave as null
     } else {
-
-      throw ApplicationFailure.create({
-        nonRetryable:false,
-        message: "error while deletion of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
+      status = error.response?.status ?? 500;
+      errorData = error.response?.data ?? null;
     }
+  
+    const details = {
+      statusCode: status,
+      errorData,
+    };
+  
+    throw ApplicationFailure.create({
+      nonRetryable: status >= 400 && status < 500,
+      message: "Error while deleting user status in auth0",
+      details: [JSON.stringify(details)],
+    });
   }
+  
 }
+
 
 
 export async function deleteUserInDb(authId: string) {
@@ -195,26 +215,31 @@ export async function deleteUserInDb(authId: string) {
 
   }
   catch (error: any) {
-    const status = error.response?.status;
-    const isNonRetryable = status >= 400 && status < 500;
-
-    console.error(' Auth0 deletion failed:', error.response?.data || error.message);
-
-    if (isNonRetryable) {
-      throw ApplicationFailure.create({
-        nonRetryable: true,
-        message: "error while deletion of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
+    let status: number;
+    let errorData: any = null;
+  
+    if (error instanceof AppError) {
+      status = error.status;
+      errorData = { message: error.message };
     } else {
-
-        throw ApplicationFailure.create({
-        nonRetryable:false,
-        message: "error while deletion of the user in auth0",
-        details: [error.response?.data ? JSON.stringify(error.response.data) : undefined]
-      })
+      status = error.response?.status ?? 500;
+      errorData = error.response?.data ?? null;
     }
+  
+    const details = {
+      statusCode: status,
+      errorData,
+    };
+  
+    throw ApplicationFailure.create({
+      nonRetryable: status >= 400 && status < 500,
+      message: "Error while deleting user in database",
+      details: [JSON.stringify(details)],
+    });
   }
+  
+
+  
 
 }
 

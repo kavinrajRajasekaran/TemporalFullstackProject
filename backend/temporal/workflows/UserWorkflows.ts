@@ -55,7 +55,7 @@ export async function deleteUserInfoWorkflow(authId: string, _id: mongoose.Types
 
   }
   catch (err: any) {
-    await updateUserStatusInDB({userId:_id, statusValue:"failed", failureReason:"failed while deletion  to auth0"})
+    await updateUserStatusInDB({userId:_id, statusValue:"failed", failureReason:"failed while deletion to auth0"});
     throw err
 
   }

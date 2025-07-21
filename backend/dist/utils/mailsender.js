@@ -46,8 +46,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendEmail = sendEmail;
+exports.isValidEmail = isValidEmail;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const dotenv = __importStar(require("dotenv"));
+const AppError_1 = require("../Errors/AppError");
 dotenv.config();
 const transporter = nodemailer_1.default.createTransport({
     service: 'gmail',
@@ -58,19 +60,25 @@ const transporter = nodemailer_1.default.createTransport({
 });
 function sendEmail(options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const mailOptions = {
-            from: `"Kavinraj" <${process.env.GMAIL_USER}>`,
-            to: options.to,
-            subject: options.subject,
-            text: options.text,
-            html: options.html,
-        };
         try {
+            if (!isValidEmail(options.to)) {
+                throw new AppError_1.AppError("Invalid Email Adress", 400);
+            }
+            const mailOptions = {
+                from: `"Kavinraj" <${process.env.GMAIL_USER}>`,
+                to: options.to,
+                subject: options.subject,
+                text: options.text,
+                html: options.html,
+            };
             const info = yield transporter.sendMail(mailOptions);
         }
         catch (error) {
-            console.error('Error sending email:', error);
             throw error;
         }
     });
+}
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
 }

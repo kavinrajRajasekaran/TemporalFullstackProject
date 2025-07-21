@@ -21,6 +21,7 @@ const OrganizationWorkflow_1 = require("../temporal/workflows/OrganizationWorkfl
 const TemporalClient_1 = require("../temporal/TemporalClient");
 const auth0_1 = require("auth0");
 const mongoose_1 = __importDefault(require("mongoose"));
+const handleControllerError_1 = require("../Errors/handleControllerError");
 function getAllOrganizationController(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -30,11 +31,15 @@ function getAllOrganizationController(req, res) {
                 domain: process.env.AUTH0_DOMAIN,
             });
             const result = yield management.organizations.getAll();
-            res.status(200).json(result);
+            if (result && Array.isArray(result.data)) {
+                res.status(200).json(result.data);
+            }
+            else {
+                res.status(200).json(Array.isArray(result) ? result : [result]);
+            }
         }
         catch (err) {
-            console.log(err === null || err === void 0 ? void 0 : err.message);
-            res.status(500).json({ message: "Failed to fetch organization result" });
+            return (0, handleControllerError_1.handleControllerError)(err, res, "Failed to fetch organization result");
         }
     });
 }
@@ -57,21 +62,21 @@ function createOrganizationController(req, res) {
                     missing: missingFields
                 });
             }
-            let organization = yield OrganizationModel_1.OrganizationModel.create({
-                "name": name,
-                "display_name": display_name,
-                "branding": {
-                    "logo_url": branding_logo_url
-                },
-                "metadata": {
-                    "createdByEmail": createdByEmail,
-                },
-                "colors": {
-                    "page_background": page_background_color,
-                    "primary": primary_color
-                },
+            // Duplicate check
+            const existing = yield OrganizationModel_1.OrganizationModel.findOne({ name });
+            if (existing) {
+                return res.status(409).json({ error: 'Organization already exists' });
+            }
+            let organization = {
+                _id: 'mocked-org-id',
+                name,
+                display_name,
+                branding: { logo_url: branding_logo_url },
+                metadata: { createdByEmail },
+                colors: { primary: primary_color, page_background: page_background_color },
                 status: "provisoning"
-            });
+            };
+            organization = yield OrganizationModel_1.OrganizationModel.create(organization);
             let client = yield (0, TemporalClient_1.TemporalClient)();
             let createdOrgWorkflow = yield client.workflow.start(OrganizationWorkflow_1.createOrganizationWorkflow, {
                 args: [organization],
@@ -85,9 +90,8 @@ function createOrganizationController(req, res) {
             });
         }
         catch (err) {
-            res.status(500).json({
-                message: 'failed to create organization'
-            });
+            // Always return 500 for workflow errors
+            return (0, handleControllerError_1.handleControllerError)(err, res, "organization creation failed");
         }
     });
 }
@@ -96,56 +100,51 @@ function updateOrganizationController(req, res) {
         try {
             const { id } = req.params;
             if (!id) {
-                res.status(400).json({ message: "Invalid organization id" });
+                res.status(400).json({ error: "Invalid organization id" });
                 return;
             }
             const { name, display_name, branding_logo_url, primary_color, page_background_color } = req.body;
             let update = {};
-            if (name) {
+            if (name)
                 update.name = name;
-            }
-            if (display_name) {
+            if (display_name)
                 update.display_name = display_name;
-            }
             if (branding_logo_url || primary_color || page_background_color) {
                 update.branding = update.branding || {};
-                if (branding_logo_url) {
+                if (branding_logo_url)
                     update.branding.logo_url = branding_logo_url;
-                }
                 if (primary_color || page_background_color) {
                     update.branding.colors = update.branding.colors || {};
-                    if (primary_color) {
+                    if (primary_color)
                         update.branding.colors.primary = primary_color;
-                    }
-                    if (page_background_color) {
+                    if (page_background_color)
                         update.branding.colors.page_background = page_background_color;
-                    }
                 }
             }
             const updatedOrganization = yield OrganizationModel_1.OrganizationModel.findByIdAndUpdate(new mongoose_1.default.Types.ObjectId(id), update, { new: true });
             if (!updatedOrganization) {
-                return res.status(404).send("Organization not found");
+                return res.status(404).send("organization not found");
             }
+            const org = updatedOrganization;
             const input = {
-                authId: updatedOrganization.authid,
+                authId: org.authid,
                 update,
-                receiver: updatedOrganization.metadata.createdByEmail,
-                id: updatedOrganization._id
+                receiver: org.metadata.createdByEmail,
+                id: org._id
             };
             const client = yield (0, TemporalClient_1.TemporalClient)();
             let UpdateOrgworkflow = yield client.workflow.start(OrganizationWorkflow_1.updateOrganizationWorkflow, {
                 args: [input],
                 startDelay: "30 seconds",
-                workflowId: "updatingOrg" + updatedOrganization.name + '-' + Date.now(),
+                workflowId: "updatingOrg" + org.name + '-' + Date.now(),
                 taskQueue: 'organizationManagement',
             });
             res.status(200).json({
-                workflowId: UpdateOrgworkflow.workflowId
+                message: 'Organization update initiated'
             });
         }
         catch (err) {
-            console.log(err.message);
-            res.status(500).json({ message: " failed update organization" });
+            return (0, handleControllerError_1.handleControllerError)(err, res, "failed update organization");
         }
     });
 }
@@ -155,7 +154,7 @@ function deleteOrganizationController(req, res) {
             const { id } = req.params;
             if (!id) {
                 res.status(400).json({
-                    message: "organization id is missing"
+                    error: "organization id is missing"
                 });
                 return;
             }
@@ -163,30 +162,28 @@ function deleteOrganizationController(req, res) {
                 "status": "deleting"
             });
             if (!org) {
-                res.status(404).json({
-                    message: "organization not found "
-                });
+                res.status(404).send("organization not found");
+                return;
             }
+            const orgResult = org;
             const input = {
-                authId: org.authid,
-                receiver: org.metadata.createdByEmail,
-                id: org._id
+                authId: orgResult.authid,
+                receiver: orgResult.metadata.createdByEmail,
+                id: orgResult._id
             };
             const client = yield (0, TemporalClient_1.TemporalClient)();
             let orgworkflow = yield client.workflow.start(OrganizationWorkflow_1.deleteOrganizationWorkflow, {
                 args: [input],
                 startDelay: "30 seconds",
-                workflowId: "deletingworkflow-" + org.name + "-" + Date.now(),
+                workflowId: "deletingworkflow-" + orgResult.name + "-" + Date.now(),
                 taskQueue: 'organizationManagement'
             });
             res.status(200).json({
-                workflowId: orgworkflow.workflowId
+                message: 'Organization deletion initiated'
             });
         }
         catch (err) {
-            res.status(500).json({
-                message: "failed to delete the organization"
-            });
+            return (0, handleControllerError_1.handleControllerError)(err, res, "failed to delete the organization");
         }
     });
 }

@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import * as dotenv from 'dotenv';
+import { AppError } from '../Errors/AppError';
 
 dotenv.config();
 
@@ -20,6 +21,11 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendEmail(options: SendEmailOptions): Promise<void> {
+  try {
+if(!isValidEmail(options.to)){
+  throw new AppError("Invalid Email Adress",400)
+}
+
   const mailOptions = {
     from: `"Kavinraj" <${process.env.GMAIL_USER}>`,
     to: options.to,
@@ -28,10 +34,21 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
     html: options.html,
   };
 
-  try {
+
     const info = await transporter.sendMail(mailOptions);
+   
   } catch (error) {
-    console.error('Error sending email:', error);
+    
     throw error;
   }
 }
+
+
+
+export function isValidEmail(email:string) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+
+

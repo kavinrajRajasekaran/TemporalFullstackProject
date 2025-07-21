@@ -2,10 +2,12 @@ import { Request, Response } from "express";
 import { IUser, UserModel } from "../models/userModel";
 import { TemporalClient } from "../temporal/TemporalClient";
 import { UserSignupWorkflow, UserUpdateWorkflow, deleteUserInfoWorkflow } from "../temporal/workflows/UserWorkflows";
-
+import { handleControllerError } from '../Errors/handleControllerError';
 import mongoose from "mongoose"
 import axios from 'axios'
 import { getAuth0Token } from "../utils/auth0TokenGenerator";
+import { isValidEmail } from "../utils/mailsender";
+import { isStrongPassword } from "../utils/shared";
 
 
 export async function createUserController(req: Request, res: Response) {
@@ -15,7 +17,7 @@ try {
     if (!email || !name || !password) {
         let missingFields:string[]=[]
         if(!email)missingFields.push("email")
-         if(!name)missingFields.push("name")
+         if(!name || !name.trim())missingFields.push("name")
         if(!password)missingFields.push("password")
         res.status(400).json({
             message:"Invalid data",
@@ -23,11 +25,20 @@ try {
         })
         return
     }
+    if(!name.trim()){
+        return res.status(400).send("Invalid user name")
+    }
+    if (!isStrongPassword(password)) {
+        return res.status(400).send("Invalid password. It must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be at least 8 characters long.");
+      }
 
-
+      if(!isValidEmail(email)){
+        res.status(400).send("Enter a valid email")
+      }
+      
 
     
-        let user = await UserModel.findOne({ email })
+        let user = await UserModel.findOne({ email: email.toLowerCase() })
         if (user) {
             res.status(409).json("User already exists")
             return
@@ -36,9 +47,9 @@ try {
 
 
         let Newuser: IUser = await UserModel.create({
-            name: name,
-            email,
-            password
+            name: name.toLowerCase(),
+            email:email.toLowerCase(),
+            password:password
         })
 
        
@@ -56,11 +67,7 @@ try {
 
     }
     catch (err: any) {
-        res.status(500).send({ 
-            message:"User creation failed ",
-            
-        })
-        return
+        return handleControllerError(err, res, "User creation failed");
     }
 
 }
@@ -80,7 +87,12 @@ export async function UpdateUserController(req: Request, res: Response) {
             })
             return
         }
-        const userId = new mongoose.Types.ObjectId(req.params.id)
+        let userId;
+        try {
+            userId = new mongoose.Types.ObjectId(req.params.id);
+        } catch (e) {
+            return res.status(400).send('Invalid user id');
+        }
 
         const updateFields: Record<string, any> = {};
         if (name) updateFields.name = name;
@@ -112,12 +124,8 @@ export async function UpdateUserController(req: Request, res: Response) {
 
         res.status(200).json({ message: "User update initiated", user });
         return
-    } catch (error) {
-        
-        res.status(500).json({
-       message:" updating the user failed"
-        });
-        
+    } catch (err: any) {
+        return handleControllerError(err, res, "Updating the user failed");
     }
 }
 
@@ -132,12 +140,8 @@ export async function getAllUserController(req: Request, res: Response) {
         });
 
         res.status(200).json(response.data);
-    } catch (error: any) {
-        
-        res.status(500).json({
-            message: 'Failed to fetch users from Auth0',
-            
-        });
+    } catch (err: any) {
+        return handleControllerError(err, res, "Failed to fetch users from Auth0");
     }
 }
 
@@ -170,11 +174,8 @@ export async function deleteUserController(req: Request, res: Response) {
         });
 
         res.status(200).json({ message: "User deletion  initiated" });
-    } catch (error: any) {
-
-         res.status(500).json({
-            message:"Deletion of user failed "
-        });
+    } catch (err: any) {
+        return handleControllerError(err, res, "Deletion of user failed");
     }
 
 }

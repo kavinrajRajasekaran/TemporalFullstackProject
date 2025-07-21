@@ -7,16 +7,17 @@ app.use(express.json());
 connectToMongo()
 
 app.get('/health', async (req: Request, res: Response) => {
-  res.send(200).json({ "status": "ok" })
+  res.status(200).json({ "status": "ok" })
 })
-
-
 
 app.use('/api/organizations', OrganizationRouter)
 app.use('/api/users', userRoutes)
 
+if (require.main === module) {
+  app.listen(3000, () => {
+    console.log('app listening on the port 3000');
+  });
+}
 
-app.listen(3000, () => {
-  console.log('app listening on the port 3000');
-});
+export default app;
 

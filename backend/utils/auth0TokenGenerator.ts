@@ -1,10 +1,12 @@
+import { AppError } from "../Errors/AppError";
+
 let cachedToken: string | null = null;
-let tokenExpiry: number = 0;// Unix timestamp in ms
+let tokenExpiry: number = 0;
 
 export async function getAuth0Token(): Promise<string|null|undefined> {
   const now = Date.now();
 
-  // If token exists and not expired, reuse it
+  
   if (cachedToken && now < tokenExpiry - 60 * 1000) {
     return cachedToken;
   }
@@ -29,8 +31,17 @@ export async function getAuth0Token(): Promise<string|null|undefined> {
 
       const data = await response.json();
       return data.access_token
-  } catch (error) {
-      console.error('Error fetching token:', error);
+  } catch (err:any) {
+    const { statusCode,message} = err;
+    if(statusCode && (statusCode>=400 || statusCode<500)){
+      throw new AppError(message,statusCode)
+    }
+    else{
+      throw new AppError("Internal server error",500)
+      
+    }
+
+      
   }
 
 
