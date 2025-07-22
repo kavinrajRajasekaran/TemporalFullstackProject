@@ -22,8 +22,8 @@ export function handleControllerError(err: any, res: Response, fallbackMessage: 
     }
   }
 
-  // 2. Handle AppError
-  if (err instanceof AppError) {
+  
+   else if (err instanceof AppError) {
     if (err.status >= 400 && err.status < 500) {
       return res.status(err.status).json({ message: err.message });
     } else {
@@ -32,8 +32,8 @@ export function handleControllerError(err: any, res: Response, fallbackMessage: 
     }
   }
 
-  // 3. Handle Mongoose errors
-  if (err instanceof mongoose.Error) {
+ 
+  else if (err instanceof mongoose.Error) {
     // CastError, ValidationError, etc.
     if (err.name === "CastError" || err.name === "ValidationError") {
       return res.status(400).json({ message: err.message });
@@ -44,11 +44,12 @@ export function handleControllerError(err: any, res: Response, fallbackMessage: 
   }
 
   // 4. Handle generic errors with status
-  if (err && typeof err.status === "number" && err.status >= 400 && err.status < 500) {
+  else if (err && typeof err.status === "number" && err.status >= 400 && err.status < 500) {
     return res.status(err.status).json({ message: err.message || fallbackMessage });
   }
-
-  // 5. Fallback: log and send generic 500
+  else{
+  
   console.error('Unknown error:', err);
   return res.status(500).json({ message: fallbackMessage });
+}
 }

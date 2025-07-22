@@ -1,42 +1,47 @@
-# Node modules
+# Node.js dependencies
 node_modules/
-**/node_modules/
-
-# Build output
-dist/
-**/dist/
-build/
-**/build/
-coverage/
-**/coverage/
-
-# Logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# OS files
+# TypeScript build output
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# Docker
+docker-compose.override.yml
+docker-data/
+temporal-data/
+*.pid
+
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Environment files
-.env
-.env.*
-!.env.example
+# Coverage and test output
+coverage/
+.nyc_output/
+jest-coverage/
+test-results/
 
-# IDE/editor folders
-.vscode/
+# IDE/editor files
 .idea/
-*.sublime-workspace
-*.sublime-project
+.vscode/
+*.swp
 
-# Test output
-*.tsbuildinfo
-jest-test-results.json
+# Temporal auto-generated files (if any)
+temporal/.cache/
+temporal/.temporal/
 
 # Misc
 *.tgz
-*.swp
-*.swo

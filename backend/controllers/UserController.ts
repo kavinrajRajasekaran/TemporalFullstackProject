@@ -18,12 +18,14 @@ try {
         let missingFields:string[]=[]
         if(!email)missingFields.push("email")
          if(!name || !name.trim())missingFields.push("name")
-        if(!password)missingFields.push("password")
+        if(!password){
+            missingFields.push("password")
         res.status(400).json({
             message:"Invalid data",
             misssingFields:missingFields
         })
         return
+    }
     }
     if(!name.trim()){
         return res.status(400).send("Invalid user name")
@@ -34,6 +36,7 @@ try {
 
       if(!isValidEmail(email)){
         res.status(400).send("Enter a valid email")
+        return
       }
       
 
