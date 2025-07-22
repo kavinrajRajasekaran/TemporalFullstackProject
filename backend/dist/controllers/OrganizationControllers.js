@@ -31,12 +31,7 @@ function getAllOrganizationController(req, res) {
                 domain: process.env.AUTH0_DOMAIN,
             });
             const result = yield management.organizations.getAll();
-            if (result && Array.isArray(result.data)) {
-                res.status(200).json(result.data);
-            }
-            else {
-                res.status(200).json(Array.isArray(result) ? result : [result]);
-            }
+            res.status(200).json(result);
         }
         catch (err) {
             return (0, handleControllerError_1.handleControllerError)(err, res, "Failed to fetch organization result");
@@ -68,7 +63,6 @@ function createOrganizationController(req, res) {
                 return res.status(409).json({ error: 'Organization already exists' });
             }
             let organization = {
-                _id: 'mocked-org-id',
                 name,
                 display_name,
                 branding: { logo_url: branding_logo_url },
@@ -80,7 +74,6 @@ function createOrganizationController(req, res) {
             let client = yield (0, TemporalClient_1.TemporalClient)();
             let createdOrgWorkflow = yield client.workflow.start(OrganizationWorkflow_1.createOrganizationWorkflow, {
                 args: [organization],
-                startDelay: "1 minutes",
                 workflowId: organization.name + Date.now(),
                 taskQueue: 'organizationManagement'
             });
@@ -90,7 +83,7 @@ function createOrganizationController(req, res) {
             });
         }
         catch (err) {
-            // Always return 500 for workflow errors
+            console.error('Create org error:', err);
             return (0, handleControllerError_1.handleControllerError)(err, res, "organization creation failed");
         }
     });

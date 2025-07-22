@@ -15,11 +15,10 @@ export async function getAllOrganizationController(req: Request, res: Response) 
             domain: process.env.AUTH0_DOMAIN!,
         })
         const result = await management.organizations.getAll();
-        if (result && Array.isArray(result.data)) {
-            res.status(200).json(result.data);
-        } else {
-            res.status(200).json(Array.isArray(result) ? result : [result]);
-        }
+       
+        
+            res.status(200).json(result);
+       
     } catch (err: any) {
         return handleControllerError(err, res, "Failed to fetch organization result");
     }
@@ -50,7 +49,7 @@ export async function createOrganizationController(req: Request, res: Response) 
         }
         
         let organization: IOrganization = {
-            _id: 'mocked-org-id', 
+             
             name,
             display_name,
             branding: { logo_url: branding_logo_url },
@@ -63,7 +62,7 @@ export async function createOrganizationController(req: Request, res: Response) 
         let client = await TemporalClient();
         let createdOrgWorkflow = await client.workflow.start(createOrganizationWorkflow, {
             args: [organization],
-            startDelay: "1 minutes",
+            
             workflowId: organization.name + Date.now(),
             taskQueue: 'organizationManagement'
         });
@@ -72,7 +71,8 @@ export async function createOrganizationController(req: Request, res: Response) 
             workflowId: createdOrgWorkflow.workflowId
         });
     } catch (err: any) {
-        // Always return 500 for workflow errors
+        console.error('Create org error:', err);
+       
         return handleControllerError(err, res, "organization creation failed");
     }
 }

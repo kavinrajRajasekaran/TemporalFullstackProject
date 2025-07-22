@@ -1,9 +1,9 @@
- // Mock DB connection to prevent real MongoDB connection and logs
+
 jest.mock('../../config/db', () => ({
   connectToMongo: jest.fn().mockResolvedValue(undefined)
 }));
 
-// Mock @temporalio/workflow to prevent runtime errors in Node.js test environment
+// Mock @temporalio/workflow 
 jest.mock('@temporalio/workflow', () => ({
   proxyActivities: jest.fn(() => ({
     OrganizationCreationInAuthActivity: jest.fn(),
@@ -20,7 +20,7 @@ jest.mock('@temporalio/workflow', () => ({
   defineUpdate: jest.fn(),
 }));
 
-// Mock all Temporal SDK modules to prevent real connections
+
 jest.mock('@temporalio/client', () => ({
   Connection: jest.fn(),
   WorkflowClient: jest.fn(),
@@ -30,7 +30,7 @@ jest.mock('@temporalio/worker', () => ({
 }));
 jest.mock('@temporalio/common', () => ({}));
 
-// Mock all axios HTTP methods
+
 jest.mock('axios', () => ({
   post: jest.fn().mockResolvedValue({ data: { organization_id: 'mocked-org-id' } }),
   patch: jest.fn().mockResolvedValue({}),
@@ -38,7 +38,7 @@ jest.mock('axios', () => ({
   get: jest.fn().mockResolvedValue({ data: [{ name: 'mocked-org', metadata: { createdByEmail: 'admin@example.com' } }] }),
 }));
 
-// Attach the workflowStartMock to the global object so it is available before jest.mock hoisting
+
 (global as any).orgWorkflowStartMock = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('../../temporal/workflows/OrganizationWorkflow', () => ({
@@ -63,7 +63,6 @@ jest.mock('../../temporal/TemporalClient', () => ({
   })
 }));
 
-// Mock OrganizationModel DB calls with unique names to avoid conflicts
 let orgFindOneMock = jest.fn();
 let orgCreateMock = jest.fn();
 let orgFindByIdAndUpdateMock = jest.fn();
@@ -80,7 +79,7 @@ jest.mock('../../models/OrganizationModel', () => ({
   }
 }));
 
-// Only mock Types.ObjectId, preserve all other mongoose exports
+
 const orgActualMongoose = jest.requireActual('mongoose');
 jest.mock('mongoose', () => ({
   ...orgActualMongoose,
@@ -98,7 +97,7 @@ describe('OrganizationFlow API Integration (fully mocked)', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    // Clear all mocks except the global workflow mock
+    
     const workflowMock = (global as any).orgWorkflowStartMock;
     jest.clearAllMocks();
     // Restore the workflow mock
@@ -147,14 +146,7 @@ describe('OrganizationFlow API Integration (fully mocked)', () => {
       deleteInDBActivity: jest.fn(),
       UpdateOrganizationAuthActivity: jest.fn(),
     }));
-    // Don't override the TemporalClient mock - keep the original one
-    // jest.doMock('../../temporal/TemporalClient', () => ({
-    //   TemporalClient: jest.fn().mockResolvedValue({
-    //     workflow: {
-    //       start: (global as any).orgWorkflowStartMock
-    //   }
-    // }));
-    // DB mocks
+   
     let orgFindOneMock = jest.fn();
     let orgCreateMock = jest.fn();
     let orgFindByIdAndUpdateMock = jest.fn();
@@ -178,7 +170,7 @@ describe('OrganizationFlow API Integration (fully mocked)', () => {
         ObjectId: jest.fn(() => 'mocked-org-object-id')
       }
     }));
-    // Now require the app
+    // require the app
     orgApp = require('../../server').default || require('../../server');
     orgRequest = require('supertest');
     // Attach mocks to global for use in tests

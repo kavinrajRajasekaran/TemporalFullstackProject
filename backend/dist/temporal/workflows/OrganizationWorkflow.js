@@ -13,6 +13,7 @@ exports.updateOrgSignal = void 0;
 exports.createOrganizationWorkflow = createOrganizationWorkflow;
 exports.updateOrganizationWorkflow = updateOrganizationWorkflow;
 exports.deleteOrganizationWorkflow = deleteOrganizationWorkflow;
+exports.ChildEmailSendingWorkflow = ChildEmailSendingWorkflow;
 const workflow_1 = require("@temporalio/workflow");
 exports.updateOrgSignal = (0, workflow_1.defineUpdate)('updateOrgSignal');
 const { OrganizationCreationInAuthActivity, sendEmailToUserActivity, deleteInAuth0Activity, updateOrganizationInDBActivity, OrganizationStatusUpdateInDBActivity, deleteInDBActivity, UpdateOrganizationAuthActivity } = (0, workflow_1.proxyActivities)({
@@ -45,8 +46,14 @@ function createOrganizationWorkflow(Organization) {
             }
             yield OrganizationStatusUpdateInDBActivity({ id: Organization._id, status: 'provisoning' });
             let authId = yield OrganizationCreationInAuthActivity(Organization);
-            yield sendEmailToUserActivity({ to: Organization.metadata.createdByEmail, subject: 'your organization created successfully' });
             yield OrganizationStatusUpdateInDBActivity({ id: Organization._id, status: 'succeed', failureReason: undefined, authid: authId });
+            //   // await sendEmailToUserActivity({ to: Organization.metadata.createdByEmail, subject: 'your organization created successfully' })
+            //  let child= await ChildEmailSendingWorkflow({ to: Organization.metadata.createdByEmail, subject: 'your organization created successfully' })
+            //   await child.result()
+            let child = yield (0, workflow_1.startChild)(ChildEmailSendingWorkflow, {
+                args: [{ to: Organization.metadata.createdByEmail, subject: 'your organization created successfully' }]
+            });
+            console.log(yield child.result());
         }
         catch (err) {
             if (Organization._id !== undefined) {
@@ -81,6 +88,17 @@ function deleteOrganizationWorkflow(input) {
         }
         catch (err) {
             yield OrganizationStatusUpdateInDBActivity({ id: input.id, status: 'failure', failureReason: "failed while deleting organization" });
+            throw err;
+        }
+    });
+}
+function ChildEmailSendingWorkflow(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield sendEmailToUserActivity(input);
+            return "email sent successfully";
+        }
+        catch (err) {
             throw err;
         }
     });

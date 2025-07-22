@@ -46,7 +46,7 @@ describe('userCreationInAuth0 Activity', () => {
     } catch (err: any) {
       expect(err).toBeInstanceOf(ApplicationFailure);
       expect(err.nonRetryable).toBe(true);
-      expect(err.message).toMatch(/creating user account in Auth0/);
+      expect(err.message).toMatch(/creating user status in Auth0/);
 
       const parsedDetails = JSON.parse(err.details[0]);
       expect(parsedDetails.statusCode).toBe(409);
@@ -68,7 +68,7 @@ describe('userCreationInAuth0 Activity', () => {
     } catch (err: any) {
       expect(err).toBeInstanceOf(ApplicationFailure);
       expect(err.nonRetryable).toBe(false);
-      expect(err.message).toMatch(/creating user account in Auth0/);
+      expect(err.message).toMatch(/creating user status in Auth0/);
 
       const parsedDetails = JSON.parse(err.details[0]);
       expect(parsedDetails.statusCode).toBe(500);
@@ -79,7 +79,7 @@ describe('userCreationInAuth0 Activity', () => {
   it('should default to status 500 if no response is present (e.g., network error)', async () => {
     mockedGetToken.mockResolvedValue('mocked_token');
     mockedAxios.post.mockRejectedValue({
-      message: 'Network Error',
+      message: 'Error while creating user account in Auth0',
     });
 
     try {

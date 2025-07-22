@@ -51,7 +51,7 @@ function run() {
         const worker = yield worker_1.Worker.create({
             workflowsPath: require.resolve('../workflows/UserWorkflows'),
             activities,
-            taskQueue: 'user-management'
+            taskQueue: 'user-anagement'
         });
         console.log('Temporal Worker is running...');
         yield worker.run();

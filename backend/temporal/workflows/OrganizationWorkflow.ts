@@ -1,10 +1,9 @@
-import { proxyActivities, sleep, condition, setHandler, defineUpdate } from '@temporalio/workflow';
+import { proxyActivities, sleep, condition, setHandler, defineUpdate,startChild } from '@temporalio/workflow';
 import type * as activities from '../activities/OrganizationActivities';
 import { IOrganization } from '../../models/OrganizationModel';
 import { OrganizationupdateWorkflowInput, OrganizationDeleteWorkflowInput } from '../../utils/shared';
-
+import { SendEmailOptions } from '../../utils/mailsender';
 export const updateOrgSignal = defineUpdate<string, [IOrganization]>('updateOrgSignal');
-
 
 
 
@@ -58,11 +57,14 @@ export async function createOrganizationWorkflow(Organization: IOrganization) {
 
     let authId: string | undefined = await OrganizationCreationInAuthActivity(Organization)
 
-    await sendEmailToUserActivity({ to: Organization.metadata.createdByEmail, subject: 'your organization created successfully' })
-
+    
     await OrganizationStatusUpdateInDBActivity({id:Organization._id!, status:'succeed',failureReason: undefined, authid:authId})
 
-
+  let child =await startChild(ChildEmailSendingWorkflow,{
+    args:[{to: Organization.metadata.createdByEmail, subject: 'your organization created successfully'}]
+  
+  })
+  console.log(await child.result())
   }
   catch (err) {
     if (Organization._id !== undefined) {
@@ -106,6 +108,17 @@ export async function deleteOrganizationWorkflow(input: OrganizationDeleteWorkfl
   }
   catch (err: any) {
     await OrganizationStatusUpdateInDBActivity({id:input.id, status:'failure', failureReason:"failed while deleting organization"})
+    throw err
+  }
+}
+
+
+export async function ChildEmailSendingWorkflow(input:SendEmailOptions){
+  try{
+    await sendEmailToUserActivity(input)
+    return "email sent successfully"
+  }
+  catch(err){
     throw err
   }
 }

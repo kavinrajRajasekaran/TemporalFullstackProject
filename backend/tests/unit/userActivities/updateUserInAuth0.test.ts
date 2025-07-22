@@ -41,7 +41,7 @@ describe('updateUserInAuth0', () => {
 
   it('should throw if no fields are provided', async () => {
     const input = { authId: 'auth0|12345' }; 
-    await expect(updateUserInAuth0(input as any)).rejects.toThrow('Error while updating user details  in Auth0');
+    await expect(updateUserInAuth0(input as any)).rejects.toThrow('Error while updating user status in auth0');
   });
 
   it('should throw non-retryable ApplicationFailure on 4xx error', async () => {

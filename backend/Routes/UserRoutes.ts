@@ -4,8 +4,6 @@ const router = Router()
 
 import { createUserController, UpdateUserController, getAllUserController, deleteUserController } from "../controllers/UserController";
 
-
-
 //Route for deleting the user
 router.delete('/:id', deleteUserController);
 

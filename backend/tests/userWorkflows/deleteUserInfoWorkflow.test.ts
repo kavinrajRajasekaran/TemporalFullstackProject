@@ -75,9 +75,9 @@ describe('deleteUserInfoWorkflow', () => {
   it('should handle deleteUserInDb failure after successful auth0 deletion', async () => {
     const dbError = new ApplicationFailure('Database deletion failed', 'DB_ERROR');
     
-    // Mock deleteUserInAuth0 to succeed
+    
     mockDeleteUserInAuth0.mockResolvedValue(undefined);
-    // Mock deleteUserInDb to fail
+    
     mockDeleteUserInDb.mockRejectedValue(dbError);
 
     await expect(deleteUserInfoWorkflow(testAuthId, testUserId)).rejects.toThrow(ApplicationFailure);
