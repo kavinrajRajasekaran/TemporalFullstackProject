@@ -1,11 +1,12 @@
 import { Worker,NativeConnection } from '@temporalio/worker';
 import * as activities from '../activities/Useractivities';
 import { connectToMongo } from "../../config/db";
+const DB_URI =process.env.DB_URI!
 async function run() {
   const address = process.env.TEMPORAL_ADDRESS || 'temporal:7233';
   const connection = await NativeConnection.connect({ address });
 
-  await connectToMongo()
+  await connectToMongo(DB_URI)
   const worker = await Worker.create({
     connection,
     workflowsPath: require.resolve('../workflows/UserWorkflows'),

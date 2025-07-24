@@ -30,7 +30,7 @@
     "@types/supertest": "^2.0.16",
     "jest": "^30.0.4",
     "jest-mock": "^30.0.2",
-    "mongodb-memory-server": "^8.14.0",
+    "mongodb-memory-server": "^8.12.1",
     "nyc": "^17.1.0",
     "sinon": "^21.0.0",
     "source-map-support": "^0.5.21",
@@ -46,8 +46,7 @@
     "start:orgworker": "tsx --require dotenv/config temporal/workers/OrganizationWorker.ts",
     "start:userworker": "tsx --require dotenv/config temporal/workers/UserWorker.ts",
     "start:all": "concurrently \"npm run start\" \"npm run start:orgworker\"",
-     
-  "test": "jest",
+    "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit/**/*.test.ts",

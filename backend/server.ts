@@ -2,9 +2,10 @@ import express, { Request, Response } from 'express';
 import userRoutes from './Routes/UserRoutes'
 import OrganizationRouter from './Routes/Organizationroutes'
 const app = express();
+const DB_URI =process.env.DB_URI!
 import { connectToMongo } from './config/db';
 app.use(express.json());
-connectToMongo()
+connectToMongo(DB_URI)
 
 app.get('/health', async (req: Request, res: Response) => {
   res.status(200).json({ "status": "ok" })
