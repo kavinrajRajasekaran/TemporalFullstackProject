@@ -119,7 +119,7 @@ export async function UpdateUserController(req: Request, res: Response) {
 
         await client.workflow.start(UserUpdateWorkflow, {
             args: [user.authId, user._id, name, password],
-            startDelay: "10 seconds",
+           
 
             taskQueue: 'user-management',
             workflowId: `update-${Date.now()}`,

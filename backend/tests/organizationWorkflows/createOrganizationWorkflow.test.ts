@@ -11,6 +11,10 @@ jest.mock('../../temporal/activities/OrganizationActivities', () => ({
   OrganizationStatusUpdateInDBActivity: mockOrganizationStatusUpdateInDBActivity,
 }));
 
+const mockStartChild = jest.fn(() => ({
+  result: jest.fn(() => Promise.resolve('mocked child result'))
+}));
+
 jest.mock('@temporalio/workflow', () => ({
   ...jest.requireActual('@temporalio/workflow'),
   proxyActivities: jest.fn(() => ({
@@ -23,6 +27,7 @@ jest.mock('@temporalio/workflow', () => ({
   setHandler: jest.fn(),
   condition: jest.fn(() => Promise.resolve(true)),
   defineUpdate: jest.fn(() => jest.fn()),
+  startChild: mockStartChild, // <-- Add this line
 }));
 
 import { createOrganizationWorkflow } from '../../temporal/workflows/OrganizationWorkflow';
@@ -57,7 +62,12 @@ describe('createOrganizationWorkflow', () => {
     await expect(createOrganizationWorkflow(org)).resolves.toBeUndefined();
     expect(mockOrganizationStatusUpdateInDBActivity).toHaveBeenCalledWith({ id: orgId, status: 'provisoning' });
     expect(mockOrganizationCreationInAuthActivity).toHaveBeenCalledWith(org);
-    expect(mockSendEmailToUserActivity).toHaveBeenCalledWith({ to: org.metadata.createdByEmail, subject: 'your organization created successfully' });
+    expect(mockStartChild).toHaveBeenCalledWith(
+      expect.any(Function), // ChildEmailSendingWorkflow
+      {
+        args: [{ to: org.metadata.createdByEmail, subject: 'your organization created successfully' }]
+      }
+    );
     expect(mockOrganizationStatusUpdateInDBActivity).toHaveBeenCalledWith({ id: orgId, status: 'succeed', failureReason: undefined, authid: 'auth0-org-id' });
   });
 
@@ -76,6 +86,10 @@ describe('createOrganizationWorkflow', () => {
     mockOrganizationCreationInAuthActivity.mockResolvedValue('auth0-org-id');
     mockSendEmailToUserActivity.mockRejectedValue(new ApplicationFailure('Email error', 'EMAIL_ERROR'));
     mockUpdateOrganizationInDBActivity.mockResolvedValue(org);
+
+    mockStartChild.mockImplementationOnce(() => ({
+      result: jest.fn(() => Promise.reject(new ApplicationFailure('Email error', 'EMAIL_ERROR')))
+    }));
 
     await expect(createOrganizationWorkflow(org)).rejects.toThrow(ApplicationFailure);
     expect(mockOrganizationStatusUpdateInDBActivity).toHaveBeenCalledWith({ id: orgId, status: 'failure' });

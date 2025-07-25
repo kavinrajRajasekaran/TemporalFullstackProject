@@ -123,7 +123,7 @@ export async function updateOrganizationController(req: Request, res: Response) 
         const client = await TemporalClient();
         let UpdateOrgworkflow = await client.workflow.start(updateOrganizationWorkflow, {
             args: [input],
-            startDelay: "30 seconds",
+            
             workflowId: "updatingOrg" + org.name + '-' + Date.now(),
             taskQueue: 'organizationManagement',
         });
@@ -162,7 +162,7 @@ export async function deleteOrganizationController(req: Request, res: Response) 
         const client = await TemporalClient()
         let orgworkflow = await client.workflow.start(deleteOrganizationWorkflow, {
             args: [input],
-            startDelay: "30 seconds",
+            
             workflowId: "deletingworkflow-" + orgResult!.name + "-" + Date.now(),
             taskQueue: 'organizationManagement'
         })

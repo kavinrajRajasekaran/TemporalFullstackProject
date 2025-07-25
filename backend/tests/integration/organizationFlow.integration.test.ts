@@ -278,7 +278,8 @@ describe('OrganizationFlow API Integration (fully mocked)', () => {
     if (!Array.isArray(res.body) || !res.body[0] || !res.body[0].name) {
       console.error('Fetch all orgs response:', res.body);
     }
-    expect(Array.isArray(res.body)).toBe(true);
+    
+    expect(Array.isArray(res.body.data)).toBe(true);
     
   });
 
